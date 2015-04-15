@@ -7,6 +7,7 @@
 #include <iostream>
 #include "Descriptor.h"
 #include "Index.h"
+#include "Helper.h"
 
 using namespace std;
 
@@ -18,20 +19,32 @@ int main(int _nargs, char** _vargs)
 		return EXIT_FAILURE;
 	}
 	
-	string inputFile = _vargs[0];
-	
+	// Get input file name
+	string inputFile = _vargs[1];
+
 	// Descriptors estimation
 	vector<Descriptor> videoDescriptor;
-	vector<Descriptor> queryDescriptor;
+	string targetLocation = Helper::getTargetLocation(inputFile);
 	
+	cout << "target: " << targetLocation << "\n";
 	/**
 	 * Magic
 	 */
 	
-	// Index calculation
+	// Index calculation (for the searched file)
 	Index index = Index();
 	
-	// Search
+	vector<string> queryLocation = Helper::getQueryLocations(inputFile);
+	for (string location : queryLocation)
+	{
+		vector<Descriptor> queryDescriptor;
+		
+		/**
+		 * Magic
+		 */
+		
+		// Nearest neighbor search
+	}
 	
 	return EXIT_SUCCESS;
 }
