@@ -98,6 +98,10 @@ int main(int _nargs, char** _vargs)
 		normalize(hist3, hist3, 0, histImage3.rows, NORM_MINMAX, -1, Mat());
 		normalize(hist4, hist4, 0, histImage4.rows, NORM_MINMAX, -1, Mat());
 
+		// Frame descriptor: the 4 histograms
+		Descriptor frameDescriptor(hist1, hist2, hist3, hist4);
+		videoDescriptor.push_back(frameDescriptor);
+
 		// Draw histograms
 		/*for(int i = 1; i < histSize; i++ ){
 			line(histImage1, Point( bin_w*(i-1), hist_h - cvRound(hist1.at<float>(i-1)) ) ,
@@ -134,58 +138,6 @@ int main(int _nargs, char** _vargs)
 			return 0;*/
 
 	}
-
-
-	/*Mat frame, grayFrame;
-	int i = 0;
-	for (int j = 0; j <= totalFrames; j++){
-		// Para tomar solo 3 frames por segundo
-		if (i <= fps/3 - 1){
-			i++;
-			capture.retrieve(frame); // Estas frames las descarto
-		}else{
-			capture.retrieve(frame);
-			// Aca: hacer descriptor
-			if(frame.channels()>1)
-			    cvtColor(frame, grayFrame, CV_BGR2GRAY);
-			else grayFrame = frame;
-
-			int histSize = 6;
-			float range[] = { 0, 256 } ; //the upper boundary is exclusive
-			const float* histRange = { range };
-			bool uniform = true; bool accumulate = false;
-			Mat b_hist;
-			calcHist(&grayFrame, 1, 0, Mat(), b_hist, 1, &histSize, &histRange, uniform, accumulate);
-			int hist_w = capture.get(CV_CAP_PROP_FRAME_WIDTH);
-			int hist_h = capture.get(CV_CAP_PROP_FRAME_HEIGHT);
-			int bin_w = cvRound( (double) hist_w/histSize );
-
-			Mat histImage( hist_h, hist_w, CV_8UC3, Scalar( 0,0,0) );
-			normalize(b_hist, b_hist, 0, histImage.rows, NORM_MINMAX, -1, Mat() );
-
-			for( int i = 1; i < histSize; i++ )
-			  {
-			      line( histImage, Point( bin_w*(i-1), hist_h - cvRound(b_hist.at<float>(i-1)) ) ,
-			                       Point( bin_w*(i), hist_h - cvRound(b_hist.at<float>(i)) ),
-			                       Scalar( 255, 0, 0), 2, 8, 0  );
-			  }
-
-			  /// Display
-			  namedWindow("calcHist Demo", CV_WINDOW_AUTOSIZE );
-			  //imshow("calcHist Demo", grayFrame );
-			  if(!frame.empty()){
-			          imshow("window", frame);
-			      }
-			  waitKey(0);
-
-
-
-			//NO BORRAR ESTE I -- DEBE IR AL FINAL
-			i = 0;
-		}
-
-	}*/
-
 	
 	// Index calculation (for the searched file)
 	Index index = Index();

@@ -13,7 +13,9 @@ class Descriptor
 public:
 	Descriptor();
 	~Descriptor();
-
-private:
-	vector <double> data;
+	Descriptor(vector<double>, vector<double>, vector<double>, vector<double>);
+	vector <double> hist1;
+	vector <double> hist2;
+	vector <double> hist3;
+	vector <double> hist4;
 };
