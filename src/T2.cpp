@@ -26,7 +26,8 @@ int main(int _nargs, char** _vargs)
 	vector<Descriptor> videoDescriptor;
 	string targetLocation = Helper::getTargetLocation(inputFile);
 	
-	cout << "target: " << targetLocation << "\n";
+	cout << "Target video: " << targetLocation << "\n";
+	
 	/**
 	 * Magic
 	 */
@@ -37,6 +38,8 @@ int main(int _nargs, char** _vargs)
 	vector<string> queryLocation = Helper::getQueryLocations(inputFile);
 	for (string location : queryLocation)
 	{
+		cout << "Procesing query: " << location << "\n";
+
 		vector<Descriptor> queryDescriptor;
 		
 		/**

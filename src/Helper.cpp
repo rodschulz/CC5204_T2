@@ -5,6 +5,8 @@
 #include "Helper.h"
 #include <fstream>
 
+#include <iostream>
+
 Helper::Helper()
 {
 }
@@ -41,7 +43,7 @@ vector<string> Helper::getQueryLocations(const string &_inputFile)
 	while (std::getline(file, line))
 	{
 		// Skip comments
-		if (line.at(0) == '#')
+		if (line.size() == 0 || line.at(0) == '#')
 			continue;
 
 		// Skip first line
