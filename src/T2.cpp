@@ -113,11 +113,15 @@ vector<Descriptor> getVideoDescriptor(VideoCapture capture){
 		Mat h1 = Mat(dst, Range(areaHeight, frameHeight), Range(areaWidth, frameWidth));
 		histImage1.copyTo(h1);*/
 
-
-			/*imshow("histogram1", histImage1);
+			/*namedWindow("histogram1", WINDOW_NORMAL);
+			imshow("histogram1", histImage1);
+			namedWindow("histogram2", WINDOW_NORMAL);
 		imshow("histogram2", histImage2);
+			namedWindow("histogram3", WINDOW_NORMAL);
 		imshow("histogram3", histImage3);
+			namedWindow("histogram4", WINDOW_NORMAL);
 		imshow("histogram4", histImage4);
+			namedWindow("VIDEO", WINDOW_NORMAL);
 		imshow("video", grayFrame);
 
 		char c = waitKey(33);
@@ -169,8 +173,8 @@ int main(int _nargs, char** _vargs)
 
 		vector<Descriptor> queryDescriptor;
 		
-		VideoCapture capture;
-		capture.open(location);
+		VideoCapture queryCapture;
+		queryCapture.open(location);
 
 		/**
 		 * Magic
