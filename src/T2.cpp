@@ -15,33 +15,12 @@
 using namespace std;
 using namespace cv;
 
-int main(int _nargs, char** _vargs)
-{
-	if (_nargs < 2)
-	{
-		cout << "Not enough arguments.\nUsage:\n\tT2 <input_file>\n";
-		return EXIT_FAILURE;
-	}
-	
-	// Get input file name
-	string inputFile = _vargs[1];
-
-	// Descriptors estimation
+/*
+ * Retorna un vector que corresponde al descriptor del video capture completo.
+ * Cada Descriptor es el descriptor de un frame, contiene los 4 histogramas.
+ */
+vector<Descriptor> getVideoDescriptor(VideoCapture capture){
 	vector<Descriptor> videoDescriptor;
-	string targetLocation = Helper::getTargetLocation(inputFile);
-	
-	cout << "Target video: " << targetLocation << "\n";
-	
-	/**
-	 * Magic ~°~°~ Creating videoDescriptor ~°
-	 */
-	VideoCapture capture;
-	capture.open(targetLocation);
-
-	if (!capture.isOpened()) {
-		cout << "Can't open target video " << targetLocation << endl;
-		return 1;
-	}
 
 	int fps = capture.get(CV_CAP_PROP_FPS);
 	int totalFrames = capture.get(CV_CAP_PROP_FRAME_COUNT);
@@ -56,7 +35,7 @@ int main(int _nargs, char** _vargs)
 	Mat frame, grayFrame;
 	for (int j = 0; j <= totalFrames; j++) {
 		if (!capture.grab() || !capture.retrieve(frame))
-				break;
+			break;
 		cvtColor(frame, grayFrame, COLOR_BGR2GRAY);
 		int frameWidth = capture.get(CV_CAP_PROP_FRAME_WIDTH);
 		int frameHeight = capture.get(CV_CAP_PROP_FRAME_HEIGHT);
@@ -122,22 +101,58 @@ int main(int _nargs, char** _vargs)
 			line(histImage4, Point( bin_w*(i-1), hist_h - cvRound(hist4.at<float>(i-1)) ) ,
 							 Point( bin_w*(i), hist_h - cvRound(hist4.at<float>(i)) ),
 							 Scalar( 255, 0, 0), 2, 8, 0  );
-		}
+		}*/
 
 		// Create big image to display all histograms
-		Mat dst(frameHeight, frameWidth, CV_8UC3);
+		/*Mat dst(frameHeight, frameWidth, CV_8UC3);
 		Mat h1 = Mat(dst, Range(areaHeight, frameHeight), Range(areaWidth, frameWidth));
-		histImage1.copyTo(h1);
+		histImage1.copyTo(h1);*/
 
 
-		imshow("histogram1", h1);
+		/*imshow("histogram1", histImage1);
+		imshow("histogram2", histImage2);
+		imshow("histogram3", histImage3);
+		imshow("histogram4", histImage4);
 		imshow("video", grayFrame);
 
 		char c = waitKey(33);
 		if (c == 27)
-			return 0;*/
+			break;*/
 
 	}
+	return videoDescriptor;
+}
+
+int main(int _nargs, char** _vargs)
+{
+	if (_nargs < 2)
+	{
+		cout << "Not enough arguments.\nUsage:\n\tT2 <input_file>\n";
+		return EXIT_FAILURE;
+	}
+	
+	// Get input file name
+	string inputFile = _vargs[1];
+
+	// Descriptors estimation
+	vector<Descriptor> videoDescriptor;
+	string targetLocation = Helper::getTargetLocation(inputFile);
+	
+	cout << "Target video: " << targetLocation << "\n";
+	
+	/**
+	 * Magic ~°~°~ Creating videoDescriptor ~°
+	 */
+	VideoCapture capture;
+	capture.open(targetLocation);
+
+	if (!capture.isOpened()) {
+		cout << "Can't open target video " << targetLocation << endl;
+		return 1;
+	}
+
+	videoDescriptor = getVideoDescriptor(capture);
+
 	
 	// Index calculation (for the searched file)
 	Index index = Index();
@@ -157,6 +172,7 @@ int main(int _nargs, char** _vargs)
 		/**
 		 * Magic
 		 */
+		queryDescriptor = getVideoDescriptor(capture);
 		
 		// Nearest neighbor search
 	}
