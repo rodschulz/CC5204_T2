@@ -4,11 +4,16 @@
  */
 #pragma once
 
+#include "Descriptor.h"
+
 class Metric
 {
 public:
-	Metric();
-	~Metric();
+	static double ManhattanMetric(const Descriptor &_desc1, const Descriptor &_desc2);
+	static double EuclideanMetric(const Descriptor &_desc1, const Descriptor &_desc2);
+	static double MaxMetric(const Descriptor &_desc1, const Descriptor &_desc2);
 
 private:
+	Metric();
+	~Metric();
 };

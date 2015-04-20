@@ -4,7 +4,6 @@
  */
 #include "Helper.h"
 #include <fstream>
-
 #include <iostream>
 
 Helper::Helper()
@@ -18,16 +17,23 @@ Helper::~Helper()
 string Helper::getTargetLocation(const string &_inputFile)
 {
 	ifstream file(_inputFile.c_str());
-
 	string line;
-	while (std::getline(file, line))
-	{
-		// Skip comments
-		if (line.size() == 0 || line.at(0) == '#')
-			continue;
 
-		// The first line is target's location
-		break;
+	if (file.is_open())
+	{
+		while (std::getline(file, line))
+		{
+			// Skip comments
+			if (line.size() == 0 || line.at(0) == '#')
+				continue;
+
+			// The first line is target's location
+			break;
+		}
+	}
+	else
+	{
+		cout << "Can't open input file\n";
 	}
 
 	return line;
@@ -36,7 +42,7 @@ string Helper::getTargetLocation(const string &_inputFile)
 vector<string> Helper::getQueryLocations(const string &_inputFile)
 {
 	ifstream file(_inputFile.c_str());
-	vector <string> locations;
+	vector<string> locations;
 
 	bool firstLine = true;
 	string line;
@@ -57,4 +63,11 @@ vector<string> Helper::getQueryLocations(const string &_inputFile)
 	}
 
 	return locations;
+}
+
+int Helper::getRandomNumber(const int _min, const int _max)
+{
+	srand(time(NULL));
+	int number = _min + (rand() % (int) (_max - _min + 1));
+	return number;
 }
