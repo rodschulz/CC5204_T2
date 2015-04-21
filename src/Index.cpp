@@ -8,15 +8,31 @@
 #include <math.h>
 #include <map>
 
-Index::Index(const vector<Descriptor> &_videoDescriptor, const MetricType &_metric)
+Index::Index(const vector<Descriptor> &_videoDescriptor, const MetricType &_type)
 {
 	// Set metric
-	switch (_metric)
+	setMetric(_type);
+	// Build the index
+	buildIndex(_videoDescriptor, 0.42);
+}
+
+Index::~Index()
+{
+}
+
+int Index::findNearestNeighbor(const Descriptor &_descriptor)
+{
+}
+
+void Index::setMetric(const MetricType &_type)
+{
+	switch (_type)
 	{
 		case MANHATTAN:
 			metric = &Metric::ManhattanMetric;
 		break;
 
+		default:
 		case EUCLIDEAN:
 			metric = &Metric::EuclideanMetric;
 		break;
@@ -25,25 +41,31 @@ Index::Index(const vector<Descriptor> &_videoDescriptor, const MetricType &_metr
 			metric = &Metric::MaxMetric;
 		break;
 	}
+}
+
+void Index::buildIndex(const vector<Descriptor> &_descriptors, const double &_alpha)
+{
+	index.clear();
+	pivots.clear();
 
 	// Select pivots
-	double alpha = 0.2;
-	double maxDistance = sqrt(_videoDescriptor.front().getDimension());
-	double threshold = alpha * maxDistance;
+	double maxDistance = sqrt(_descriptors.front().getDimension());
+	double threshold = _alpha * maxDistance;
 
-	size_t firstPivot = (size_t) Helper::getRandomNumber(0, _videoDescriptor.size() - 1);
-	map<int, const Descriptor *> pivots;
-	pivots[firstPivot] = &_videoDescriptor[firstPivot];
+	size_t firstPivot = (size_t) Helper::getRandomNumber(0, _descriptors.size() - 1);
+	pivots.push_back(&_descriptors[firstPivot]);
 
-	for (size_t i = 0; i < _videoDescriptor.size(); i++)
+	// TODO improve efficiency by using distances already calculated to select pivots
+	for (size_t i = 0; i < _descriptors.size(); i++)
 	{
 		if (i == firstPivot)
 			continue;
 
 		bool addPivot = true;
-		for (pair<int, const Descriptor *> p : pivots)
+		for (const Descriptor * p : pivots)
 		{
-			if (metric(*p.second, _videoDescriptor[i]) < threshold)
+			double distance = metric(*p, _descriptors[i]);
+			if (distance < threshold)
 			{
 				addPivot = false;
 				break;
@@ -51,22 +73,18 @@ Index::Index(const vector<Descriptor> &_videoDescriptor, const MetricType &_metr
 		}
 
 		if (addPivot)
-			pivots[i] = &_videoDescriptor[i];
+			pivots.push_back(&_descriptors[i]);
 	}
 
 	// Generate index
-	index.resize(_videoDescriptor.size());
-	for (size_t i = 0; i < _videoDescriptor.size(); i++)
+	index.resize(_descriptors.size());
+	for (size_t i = 0; i < _descriptors.size(); i++)
 	{
 		size_t j = 0;
-		for (pair<int, const Descriptor *> p : pivots)
+		for (const Descriptor * p : pivots)
 		{
-			index[i].resize(pivots.size(), 0);
-			index[i][j] = metric(_videoDescriptor[i], *p.second);
+			index[i].resize(pivots.size());
+			index[i][j] = make_pair(metric(_descriptors[i], *p), p);
 		}
 	}
-}
-
-Index::~Index()
-{
 }

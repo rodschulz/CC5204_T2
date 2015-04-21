@@ -67,7 +67,8 @@ vector<string> Helper::getQueryLocations(const string &_inputFile)
 
 int Helper::getRandomNumber(const int _min, const int _max)
 {
-	srand(time(NULL));
+	srand(rand());
+	srand(rand());
 	int number = _min + (rand() % (int) (_max - _min + 1));
 	return number;
 }
