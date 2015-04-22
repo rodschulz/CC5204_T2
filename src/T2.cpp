@@ -16,6 +16,15 @@
 using namespace std;
 using namespace cv;
 
+vector<double> normalizeHist(vector<double> hist, double total){
+	for(int i = 0; i < 128; i++){
+		//cout << "HIST: " << hist[i] << endl;
+		hist[i] = hist[i]/total;
+		//cout << "NORM: " << hist[i] << endl;
+	}
+	return hist;
+}
+
 /*
  * Retorna un vector que corresponde al descriptor del video capture completo.
  * Cada Descriptor es el descriptor de un frame, contiene los 4 histogramas.
@@ -47,9 +56,9 @@ void getVideoDescriptor(VideoCapture &_capture, vector<Descriptor> &_videoDescri
 			int frameHeight = _capture.get(CV_CAP_PROP_FRAME_HEIGHT);
 
 			/**
-		 * | 1 | 2 |
-		 * | 3 | 4 |
-		 */
+			 * | 1 | 2 |
+		 	 * | 3 | 4 |
+		 	 */
 			int areaWidth = frameWidth / 2;
 			int areaHeight = frameHeight / 2;
 			Mat area1, area2, area3, area4;
@@ -69,86 +78,22 @@ void getVideoDescriptor(VideoCapture &_capture, vector<Descriptor> &_videoDescri
 			bool accumulate = false;
 			Mat hist1, hist2, hist3, hist4;
 
-			cout << hist1.size() << endl;
 			// Calculate histogram for each area
 			calcHist(&area1, 1, 0, Mat(), hist1, 1, &histSize, &histRange, uniform, accumulate);
 			calcHist(&area2, 1, 0, Mat(), hist2, 1, &histSize, &histRange, uniform, accumulate);
 			calcHist(&area3, 1, 0, Mat(), hist3, 1, &histSize, &histRange, uniform, accumulate);
 			calcHist(&area4, 1, 0, Mat(), hist4, 1, &histSize, &histRange, uniform, accumulate);
 
-			cout << hist1.size() << endl;
-
-
-			// Create images to show histograms
-			int hist_h = _capture.get(CV_CAP_PROP_FRAME_HEIGHT);
-			Mat histImage1(hist_h, frameWidth, CV_8UC3, Scalar(0, 0, 0));
-			Mat histImage2(hist_h, frameWidth, CV_8UC3, Scalar(0, 0, 0));
-			Mat histImage3(hist_h, frameWidth, CV_8UC3, Scalar(0, 0, 0));
-			Mat histImage4(hist_h, frameWidth, CV_8UC3, Scalar(0, 0, 0));
-
 			// Normalize each histogram
-			normalize(hist1, hist1, 0, histImage1.rows, NORM_MINMAX, -1, Mat());
-			normalize(hist2, hist2, 0, histImage2.rows, NORM_MINMAX, -1, Mat());
-			normalize(hist3, hist3, 0, histImage3.rows, NORM_MINMAX, -1, Mat());
-			normalize(hist4, hist4, 0, histImage4.rows, NORM_MINMAX, -1, Mat());
-
-			Vector<double> vc1;
-			hist1.copyTo(vc1);
+			double totalPxs = areaHeight * areaWidth;
+			vector<double> normHist1 = normalizeHist(hist1, totalPxs);
+			vector<double> normHist2 = normalizeHist(hist2, totalPxs);
+			vector<double> normHist3 = normalizeHist(hist3, totalPxs);
+			vector<double> normHist4 = normalizeHist(hist4, totalPxs);
 
 			// Frame descriptor: the 4 histograms
-			_videoDescriptor.push_back(Descriptor(hist1, hist2, hist3, hist4));
+			_videoDescriptor.push_back(Descriptor(normHist1, normHist2, normHist3, normHist4));
 
-			/*cout << hist1 << endl;
-
-			int sum = 0;
-
-			cout << sum << endl;*/
-
-			//break;
-
-			// Draw histograms
-			/*int bin_w = cvRound((double) frameWidth / histSize);
-		 for(int i = 1; i < histSize; i++ ){
-		 line(histImage1, Point( bin_w*(i-1), hist_h - cvRound(hist1.at<float>(i-1)) ) ,
-		 Point( bin_w*(i), hist_h - cvRound(hist1.at<float>(i)) ),
-		 Scalar( 255, 0, 0), 2, 8, 0  );
-		 }
-		 for(int i = 1; i < histSize; i++ ){
-		 line(histImage2, Point( bin_w*(i-1), hist_h - cvRound(hist2.at<float>(i-1)) ) ,
-		 Point( bin_w*(i), hist_h - cvRound(hist2.at<float>(i)) ),
-		 Scalar( 255, 0, 0), 2, 8, 0  );
-		 }
-		 for(int i = 1; i < histSize; i++ ){
-		 line(histImage3, Point( bin_w*(i-1), hist_h - cvRound(hist3.at<float>(i-1)) ) ,
-		 Point( bin_w*(i), hist_h - cvRound(hist3.at<float>(i)) ),
-		 Scalar( 255, 0, 0), 2, 8, 0  );
-		 }
-		 for(int i = 1; i < histSize; i++ ){
-		 line(histImage4, Point( bin_w*(i-1), hist_h - cvRound(hist4.at<float>(i-1)) ) ,
-		 Point( bin_w*(i), hist_h - cvRound(hist4.at<float>(i)) ),
-		 Scalar( 255, 0, 0), 2, 8, 0  );
-		 }*/
-
-			// Create big image to display all histograms
-			/*Mat dst(frameHeight, frameWidth, CV_8UC3);
-		 Mat h1 = Mat(dst, Range(areaHeight, frameHeight), Range(areaWidth, frameWidth));
-		 histImage1.copyTo(h1);*/
-
-			/*namedWindow("histogram1", WINDOW_NORMAL);
-		 imshow("histogram1", histImage1);
-		 namedWindow("histogram2", WINDOW_NORMAL);
-		 imshow("histogram2", histImage2);
-		 namedWindow("histogram3", WINDOW_NORMAL);
-		 imshow("histogram3", histImage3);
-		 namedWindow("histogram4", WINDOW_NORMAL);
-		 imshow("histogram4", histImage4);
-
-			namedWindow("VIDEO", WINDOW_NORMAL);
-		 	imshow("video", grayFrame);
-
-		 	char c = waitKey(33);
-		 	if (c == 27)
-		 	break;*/
 			k = 0;
 		}
 		k++;
