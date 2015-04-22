@@ -12,13 +12,21 @@ class Descriptor
 {
 public:
 	~Descriptor();
+	// Empty constructor
 	Descriptor();
+	// Constructor
 	Descriptor(const vector<double> &_h1, const vector<double> &_h2, const vector<double> &_h3, const vector<double> &_h4);
+	// Copy constructor
+	Descriptor(const Descriptor &_other);
+	// Assignment operator
+	Descriptor &operator=(const Descriptor &_other);
 
+	// Returns a single vector representing the descriptor data
 	inline vector<double> getDescriptorVector() const
 	{
 		return whole;
 	}
+	// Gets the dimension of the descriptor
 	inline size_t getDimension() const
 	{
 		return whole.size();

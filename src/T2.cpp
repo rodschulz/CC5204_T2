@@ -11,6 +11,7 @@
 #include "Descriptor.h"
 #include "Index.h"
 #include "Helper.h"
+#include "Result.h"
 
 using namespace std;
 using namespace cv;
@@ -164,14 +165,12 @@ int main(int _nargs, char** _vargs)
 
 	// Get input file name
 	string inputFile = _vargs[1];
+	srand(time(NULL));
 
 	// Descriptors estimation
 	string targetLocation = Helper::getTargetLocation(inputFile);
 	cout << "Target video: " << targetLocation << "\n";
 
-	/**
-	 * Magic ~°~°~ Creating videoDescriptor ~°~°~
-	 */
 	VideoCapture capture;
 	capture.open(targetLocation);
 	if (!capture.isOpened())
@@ -180,12 +179,44 @@ int main(int _nargs, char** _vargs)
 		return EXIT_FAILURE;
 	}
 
+	// Create the descriptor of the video
 	vector<Descriptor> videoDescriptor;
 	getVideoDescriptor(capture, videoDescriptor);
 
-	// Index calculation (for the searched file)
+	/** TEST *
+	 int n = Helper::getRandomNumber(505, 600);
+	 videoDescriptor.clear();
+	 videoDescriptor.reserve(n);
+	 for (int i = 0; i < n; i++)
+	 {
+	 vector<vector<double>> v(4);
+	 for (int k = 0; k < 4; k++)
+	 {
+	 v[k] = vector<double>(128, 0);
+	 for (int j = 0; j < 128; j++)
+	 {
+	 double d = Helper::getRandomNumber(1, 100);
+	 v[k][j] = d / 100.0;
+	 }
+	 }
+
+	 videoDescriptor.push_back(Descriptor(v[0], v[1], v[2], v[3]));
+	 }
+	 ** TEMPORAL */
+
+	cout << "Target video descriptor length: " << videoDescriptor.size() << "\n";
+
+	// Index construction (put the magic into the magic)
 	Index index = Index(videoDescriptor, EUCLIDEAN);
 
+	/** TEST *
+	 Descriptor query = videoDescriptor[500];
+	 query.whole[0] += 0.2;
+	 query.whole[10] -= 0.3;
+	 pair<int, const Descriptor *> nn = index.findNearestNeighbor(query);
+	 ** TEST */
+
+	vector<Result> results;
 	vector<string> queryLocation = Helper::getQueryLocations(inputFile);
 	for (string location : queryLocation)
 	{
@@ -194,10 +225,24 @@ int main(int _nargs, char** _vargs)
 		VideoCapture queryCapture;
 		queryCapture.open(location);
 
-		vector<Descriptor> queryDescriptor;
-		getVideoDescriptor(capture, queryDescriptor);
+		if (!queryCapture.isOpened())
+		{
+			cout << "Can't open target video " << targetLocation << endl;
+			return EXIT_FAILURE;
+		}
 
-		// Nearest neighbor search
+		// Do the hustle
+		vector<Descriptor> queryDescriptors;
+		getVideoDescriptor(capture, queryDescriptors);
+
+		Result queryResults(location, 3);
+		for (Descriptor d : queryDescriptors)
+		{
+			pair<int, const Descriptor *> NN = index.findNearestNeighbor(d);
+			queryResults.addMatchingFrame(NN);
+		}
+
+		results.push_back(queryResults);
 	}
 
 	return EXIT_SUCCESS;

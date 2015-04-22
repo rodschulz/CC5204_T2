@@ -23,6 +23,29 @@ Descriptor::Descriptor(const vector<double> &_h1, const vector<double> &_h2, con
 	whole.insert(whole.end(), hist4.begin(), hist4.end());
 }
 
+Descriptor::Descriptor(const Descriptor &_other)
+{
+	hist1 = _other.hist1;
+	hist2 = _other.hist2;
+	hist3 = _other.hist3;
+	hist4 = _other.hist4;
+	whole = _other.whole;
+}
+
 Descriptor::~Descriptor()
 {
+}
+
+Descriptor &Descriptor::operator=(const Descriptor &_other)
+{
+	if (this != &_other)
+	{
+		hist1 = _other.hist1;
+		hist2 = _other.hist2;
+		hist3 = _other.hist3;
+		hist4 = _other.hist4;
+		whole = _other.whole;
+	}
+
+	return *this;
 }
