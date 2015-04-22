@@ -47,5 +47,5 @@ Descriptor &Descriptor::operator=(const Descriptor &_other)
 		whole = _other.whole;
 	}
 
-	return this;
+	return *this;
 }
