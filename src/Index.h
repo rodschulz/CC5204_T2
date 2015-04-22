@@ -15,9 +15,6 @@ typedef enum MetricType
 	MANHATTAN, EUCLIDEAN, MAX
 } MetricType;
 
-// Definition of an element of the index
-typedef pair<double, const Descriptor *> Element;
-
 class Index
 {
 public:
@@ -26,7 +23,7 @@ public:
 	~Index();
 
 	// Returns the index of the nearest neighbor, according to the indices the descriptor array used to build the index
-	int findNearestNeighbor(const Descriptor &_descriptor);
+	pair<int, const Descriptor *> findNearestNeighbor(const Descriptor &_descriptor);
 
 private:
 	// Sets the metric to be used by the index
@@ -37,6 +34,7 @@ private:
 	// Metric used to build the index
 	double (*metric)(const Descriptor &, const Descriptor &);
 	// Index data
-	vector<vector<Element>> index;
-	vector<const Descriptor *> pivots;
+	vector<pair<const Descriptor *, vector<double>>> index;
+	// Array holding the index of the pivot as an element of the set and a pointer to the pivot
+	vector<pair<int, const Descriptor *>> pivots;
 };

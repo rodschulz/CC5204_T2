@@ -1,2 +1,5 @@
 *.o
 build/*
+.settings/*
+.cproject
+.project
