@@ -33,65 +33,80 @@ void getVideoDescriptor(VideoCapture &_capture, vector<Descriptor> &_videoDescri
 	 cout << "fps " << fps << endl;*/
 
 	int skipFrames = fps / 3 - 1;
-	int cntFrames = 0;
 
 	Mat frame, grayFrame;
-	for (int j = 1; j <= totalFrames; j += skipFrames)
-	{
+	int k = 0;
+	for (int j = 0; j <= totalFrames; j++) {
 		if (!_capture.grab() || !_capture.retrieve(frame))
 			break;
 
-		cvtColor(frame, grayFrame, COLOR_BGR2GRAY);
-		int frameWidth = _capture.get(CV_CAP_PROP_FRAME_WIDTH);
-		int frameHeight = _capture.get(CV_CAP_PROP_FRAME_HEIGHT);
+		if (k == skipFrames) {
+			cvtColor(frame, grayFrame, COLOR_BGR2GRAY);
+			int frameWidth = _capture.get(CV_CAP_PROP_FRAME_WIDTH);
+			int frameHeight = _capture.get(CV_CAP_PROP_FRAME_HEIGHT);
 
-		/**
+			/**
 		 * | 1 | 2 |
 		 * | 3 | 4 |
 		 */
-		int areaWidth = frameWidth / 2;
-		int areaHeight = frameHeight / 2;
-		Mat area1, area2, area3, area4;
-		area1 = grayFrame(Rect(0, 0, areaWidth, areaHeight));
-		area2 = grayFrame(Rect(areaWidth, 0, areaWidth, areaHeight));
-		area3 = grayFrame(Rect(0, areaHeight, areaWidth, areaHeight));
-		area4 = grayFrame(Rect(areaWidth, areaHeight, areaWidth, areaHeight));
+			int areaWidth = frameWidth / 2;
+			int areaHeight = frameHeight / 2;
+			Mat area1, area2, area3, area4;
+			area1 = grayFrame(Rect(0, 0, areaWidth, areaHeight));
+			area2 = grayFrame(Rect(areaWidth, 0, areaWidth, areaHeight));
+			area3 = grayFrame(Rect(0, areaHeight, areaWidth, areaHeight));
+			area4 = grayFrame(Rect(areaWidth, areaHeight, areaWidth, areaHeight));
 
-		//Histogram
-		int histSize = 128;
-		//the upper boundary is exclusive
-		float range[] =
-		{ 0, 256 };
-		const float *histRange =
-		{ range };
-		bool uniform = true;
-		bool accumulate = false;
-		Mat hist1, hist2, hist3, hist4;
+			//Histogram
+			int histSize = 128;
+			//the upper boundary is exclusive
+			float range[] =
+					{0, 256};
+			const float *histRange =
+					{range};
+			bool uniform = true;
+			bool accumulate = false;
+			Mat hist1, hist2, hist3, hist4;
 
-		// Calculate histogram for each area
-		calcHist(&area1, 1, 0, Mat(), hist1, 1, &histSize, &histRange, uniform, accumulate);
-		calcHist(&area2, 1, 0, Mat(), hist2, 1, &histSize, &histRange, uniform, accumulate);
-		calcHist(&area3, 1, 0, Mat(), hist3, 1, &histSize, &histRange, uniform, accumulate);
-		calcHist(&area4, 1, 0, Mat(), hist4, 1, &histSize, &histRange, uniform, accumulate);
+			cout << hist1.size() << endl;
+			// Calculate histogram for each area
+			calcHist(&area1, 1, 0, Mat(), hist1, 1, &histSize, &histRange, uniform, accumulate);
+			calcHist(&area2, 1, 0, Mat(), hist2, 1, &histSize, &histRange, uniform, accumulate);
+			calcHist(&area3, 1, 0, Mat(), hist3, 1, &histSize, &histRange, uniform, accumulate);
+			calcHist(&area4, 1, 0, Mat(), hist4, 1, &histSize, &histRange, uniform, accumulate);
 
-		// Create images to show histograms
-		int hist_h = _capture.get(CV_CAP_PROP_FRAME_HEIGHT);
-		Mat histImage1(hist_h, frameWidth, CV_8UC3, Scalar(0, 0, 0));
-		Mat histImage2(hist_h, frameWidth, CV_8UC3, Scalar(0, 0, 0));
-		Mat histImage3(hist_h, frameWidth, CV_8UC3, Scalar(0, 0, 0));
-		Mat histImage4(hist_h, frameWidth, CV_8UC3, Scalar(0, 0, 0));
+			cout << hist1.size() << endl;
 
-		// Normalize each histogram
-		normalize(hist1, hist1, 0, histImage1.rows, NORM_MINMAX, -1, Mat());
-		normalize(hist2, hist2, 0, histImage2.rows, NORM_MINMAX, -1, Mat());
-		normalize(hist3, hist3, 0, histImage3.rows, NORM_MINMAX, -1, Mat());
-		normalize(hist4, hist4, 0, histImage4.rows, NORM_MINMAX, -1, Mat());
 
-		// Frame descriptor: the 4 histograms
-		_videoDescriptor.push_back(Descriptor(hist1, hist2, hist3, hist4));
+			// Create images to show histograms
+			int hist_h = _capture.get(CV_CAP_PROP_FRAME_HEIGHT);
+			Mat histImage1(hist_h, frameWidth, CV_8UC3, Scalar(0, 0, 0));
+			Mat histImage2(hist_h, frameWidth, CV_8UC3, Scalar(0, 0, 0));
+			Mat histImage3(hist_h, frameWidth, CV_8UC3, Scalar(0, 0, 0));
+			Mat histImage4(hist_h, frameWidth, CV_8UC3, Scalar(0, 0, 0));
 
-		// Draw histograms
-		/*int bin_w = cvRound((double) frameWidth / histSize);
+			// Normalize each histogram
+			normalize(hist1, hist1, 0, histImage1.rows, NORM_MINMAX, -1, Mat());
+			normalize(hist2, hist2, 0, histImage2.rows, NORM_MINMAX, -1, Mat());
+			normalize(hist3, hist3, 0, histImage3.rows, NORM_MINMAX, -1, Mat());
+			normalize(hist4, hist4, 0, histImage4.rows, NORM_MINMAX, -1, Mat());
+
+			Vector<double> vc1;
+			hist1.copyTo(vc1);
+
+			// Frame descriptor: the 4 histograms
+			_videoDescriptor.push_back(Descriptor(hist1, hist2, hist3, hist4));
+
+			/*cout << hist1 << endl;
+
+			int sum = 0;
+
+			cout << sum << endl;*/
+
+			//break;
+
+			// Draw histograms
+			/*int bin_w = cvRound((double) frameWidth / histSize);
 		 for(int i = 1; i < histSize; i++ ){
 		 line(histImage1, Point( bin_w*(i-1), hist_h - cvRound(hist1.at<float>(i-1)) ) ,
 		 Point( bin_w*(i), hist_h - cvRound(hist1.at<float>(i)) ),
@@ -113,12 +128,12 @@ void getVideoDescriptor(VideoCapture &_capture, vector<Descriptor> &_videoDescri
 		 Scalar( 255, 0, 0), 2, 8, 0  );
 		 }*/
 
-		// Create big image to display all histograms
-		/*Mat dst(frameHeight, frameWidth, CV_8UC3);
+			// Create big image to display all histograms
+			/*Mat dst(frameHeight, frameWidth, CV_8UC3);
 		 Mat h1 = Mat(dst, Range(areaHeight, frameHeight), Range(areaWidth, frameWidth));
 		 histImage1.copyTo(h1);*/
 
-		/*namedWindow("histogram1", WINDOW_NORMAL);
+			/*namedWindow("histogram1", WINDOW_NORMAL);
 		 imshow("histogram1", histImage1);
 		 namedWindow("histogram2", WINDOW_NORMAL);
 		 imshow("histogram2", histImage2);
@@ -126,13 +141,16 @@ void getVideoDescriptor(VideoCapture &_capture, vector<Descriptor> &_videoDescri
 		 imshow("histogram3", histImage3);
 		 namedWindow("histogram4", WINDOW_NORMAL);
 		 imshow("histogram4", histImage4);
-		 namedWindow("VIDEO", WINDOW_NORMAL);
-		 imshow("video", grayFrame);
 
-		 char c = waitKey(33);
-		 if (c == 27)
-		 break;*/
-		cntFrames++;
+			namedWindow("VIDEO", WINDOW_NORMAL);
+		 	imshow("video", grayFrame);
+
+		 	char c = waitKey(33);
+		 	if (c == 27)
+		 	break;*/
+			k = 0;
+		}
+		k++;
 	}
 }
 
