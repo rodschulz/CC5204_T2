@@ -16,13 +16,82 @@
 using namespace std;
 using namespace cv;
 
-vector<double> normalizeHist(vector<double> hist, double total){
-	for(int i = 0; i < 128; i++){
-		//cout << "HIST: " << hist[i] << endl;
+/* Normaliza histograma segun el total de pixeles del area */
+vector<double> normalizeHist(vector<double> hist, int bins, double total){
+	for(int i = 0; i < bins; i++){
 		hist[i] = hist[i]/total;
-		//cout << "NORM: " << hist[i] << endl;
 	}
 	return hist;
+}
+
+
+void getOMDDescriptor(VideoCapture &_capture, vector<Descriptor> &_videoDescriptor){
+	_videoDescriptor.clear();
+	double fps = _capture.get(CV_CAP_PROP_FPS);
+	double totalFrames = _capture.get(CV_CAP_PROP_FRAME_COUNT);
+
+	int skipFrames = fps / 3 - 1;
+
+	Mat frame, grayFrame;
+	int k = 0;
+	for (int j = 0; j <= totalFrames; j++) {
+		if (!_capture.grab() || !_capture.retrieve(frame))
+			break;
+
+		if (k == skipFrames) {
+			cvtColor(frame, grayFrame, COLOR_BGR2GRAY);
+			int frameWidth = _capture.get(CV_CAP_PROP_FRAME_WIDTH);
+			int frameHeight = _capture.get(CV_CAP_PROP_FRAME_HEIGHT);
+
+			/**
+			 * | 1 | 2 | 3 |
+		 	 * | 4 | 5 | 6 |
+		 	 * | 7 | 8 | 9 |
+		 	 */
+			int areaWidth = frameWidth / 3;
+			int areaHeight = frameHeight / 3;
+
+			Mat area1, area2, area3, area4, area5, area6, area7, area8, area9;
+			area1 = grayFrame(Rect(0, 0, areaWidth, areaHeight));
+			area2 = grayFrame(Rect(areaWidth, 0, areaWidth, areaHeight));
+			area3 = grayFrame(Rect(2 * areaWidth, 0, areaWidth, areaHeight));
+			area4 = grayFrame(Rect(0, areaHeight, areaWidth, areaHeight));
+			area5 = grayFrame(Rect(areaWidth, areaHeight, areaWidth, areaHeight));
+			area6 = grayFrame(Rect(2 * areaWidth, areaHeight, areaWidth, areaHeight));
+			area7 = grayFrame(Rect(0, 2 * areaHeight, areaWidth, areaHeight));
+			area8 = grayFrame(Rect(areaWidth, 2 * areaHeight, areaWidth, areaHeight));
+			area9 = grayFrame(Rect(2 * areaWidth, 2 * areaHeight, areaWidth, areaHeight));
+
+			// Calculate average (mean) intensity on each area, add to vector
+			vector<double> meanIntensities;
+			meanIntensities.push_back(mean(area1)[0]);
+			meanIntensities.push_back(mean(area2)[0]);
+			meanIntensities.push_back(mean(area3)[0]);
+			meanIntensities.push_back(mean(area4)[0]);
+			meanIntensities.push_back(mean(area5)[0]);
+			meanIntensities.push_back(mean(area6)[0]);
+			meanIntensities.push_back(mean(area7)[0]);
+			meanIntensities.push_back(mean(area8)[0]);
+			meanIntensities.push_back(mean(area9)[0]);
+
+			// Calculate the position on the intensity scale of the image, for each area
+			vector<double> sortedIntensities(meanIntensities.size());
+			copy(meanIntensities.begin(), meanIntensities.end(), sortedIntensities.begin());
+			sort(sortedIntensities.begin(), sortedIntensities.end());
+
+			vector<double> omd(meanIntensities.size());
+			for(int i = 0; i < meanIntensities.size(); i++){
+				int pos = find(sortedIntensities.begin(), sortedIntensities.end(), meanIntensities[i]) - sortedIntensities.begin();
+				omd[i] = pos;
+			}
+
+			_videoDescriptor.push_back(Descriptor(omd, NULL, NULL, NULL));
+
+			k = 0;
+		}
+		k++;
+	}
+
 }
 
 /*
@@ -35,12 +104,6 @@ void getVideoDescriptor(VideoCapture &_capture, vector<Descriptor> &_videoDescri
 
 	double fps = _capture.get(CV_CAP_PROP_FPS);
 	double totalFrames = _capture.get(CV_CAP_PROP_FRAME_COUNT);
-	/*double length = totalFrames / fps;
-
-	 cout << "Video dura " << length << " segundos." << endl;
-	 cout << "Deberia tener " << length*3 << " frames." << endl;
-
-	 cout << "fps " << fps << endl;*/
 
 	int skipFrames = fps / 3 - 1;
 
@@ -70,10 +133,8 @@ void getVideoDescriptor(VideoCapture &_capture, vector<Descriptor> &_videoDescri
 			//Histogram
 			int histSize = 128;
 			//the upper boundary is exclusive
-			float range[] =
-					{0, 256};
-			const float *histRange =
-					{range};
+			float range[] = {0, 256};
+			const float *histRange = {range};
 			bool uniform = true;
 			bool accumulate = false;
 			Mat hist1, hist2, hist3, hist4;
@@ -84,12 +145,12 @@ void getVideoDescriptor(VideoCapture &_capture, vector<Descriptor> &_videoDescri
 			calcHist(&area3, 1, 0, Mat(), hist3, 1, &histSize, &histRange, uniform, accumulate);
 			calcHist(&area4, 1, 0, Mat(), hist4, 1, &histSize, &histRange, uniform, accumulate);
 
-			// Normalize each histogram
+			// Normalize each histogram and copy to vector
 			double totalPxs = areaHeight * areaWidth;
-			vector<double> normHist1 = normalizeHist(hist1, totalPxs);
-			vector<double> normHist2 = normalizeHist(hist2, totalPxs);
-			vector<double> normHist3 = normalizeHist(hist3, totalPxs);
-			vector<double> normHist4 = normalizeHist(hist4, totalPxs);
+			vector<double> normHist1 = normalizeHist(hist1, histSize, totalPxs);
+			vector<double> normHist2 = normalizeHist(hist2, histSize, totalPxs);
+			vector<double> normHist3 = normalizeHist(hist3, histSize, totalPxs);
+			vector<double> normHist4 = normalizeHist(hist4, histSize, totalPxs);
 
 			// Frame descriptor: the 4 histograms
 			_videoDescriptor.push_back(Descriptor(normHist1, normHist2, normHist3, normHist4));
