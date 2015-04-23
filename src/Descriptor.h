@@ -5,8 +5,17 @@
 #pragma once
 
 #include <vector>
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
 
 using namespace std;
+
+// Types of descriptors
+typedef enum DescType
+{
+	HIST, OMD
+} DescType;
 
 class Descriptor
 {
@@ -15,7 +24,7 @@ public:
 	// Empty constructor
 	Descriptor();
 	// Constructor
-	Descriptor(const vector<double> &_v);
+	Descriptor(cv::Mat &_frame, const DescType &_type);
 	// Copy constructor
 	Descriptor(const Descriptor &_other);
 	// Assignment operator
@@ -34,4 +43,7 @@ public:
 
 private:
 	vector<double> vec;
+	vector<double> Histogram(cv::Mat &_frame);
+	vector<double> Omd(cv::Mat &_frame);
+	vector<double> normalizeHist(vector<double> hist, int bins, double total);
 };

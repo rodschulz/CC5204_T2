@@ -16,90 +16,7 @@
 using namespace std;
 using namespace cv;
 
-/* Normaliza histograma segun el total de pixeles del area */
-vector<double> normalizeHist(vector<double> hist, int bins, double total){
-	for(int i = 0; i < bins; i++){
-		hist[i] = hist[i]/total;
-	}
-	return hist;
-}
-
-
-void getOMDDescriptor(VideoCapture &_capture, vector<Descriptor> &_videoDescriptor){
-	_videoDescriptor.clear();
-	double fps = _capture.get(CV_CAP_PROP_FPS);
-	double totalFrames = _capture.get(CV_CAP_PROP_FRAME_COUNT);
-
-	int skipFrames = fps / 3 - 1;
-
-	Mat frame, grayFrame;
-	int k = 0;
-	for (int j = 0; j <= totalFrames; j++) {
-		if (!_capture.grab() || !_capture.retrieve(frame))
-			break;
-
-		if (k == skipFrames) {
-			cvtColor(frame, grayFrame, COLOR_BGR2GRAY);
-			int frameWidth = _capture.get(CV_CAP_PROP_FRAME_WIDTH);
-			int frameHeight = _capture.get(CV_CAP_PROP_FRAME_HEIGHT);
-
-			/**
-			 * | 1 | 2 | 3 |
-		 	 * | 4 | 5 | 6 |
-		 	 * | 7 | 8 | 9 |
-		 	 */
-			int areaWidth = frameWidth / 3;
-			int areaHeight = frameHeight / 3;
-
-			Mat area1, area2, area3, area4, area5, area6, area7, area8, area9;
-			area1 = grayFrame(Rect(0, 0, areaWidth, areaHeight));
-			area2 = grayFrame(Rect(areaWidth, 0, areaWidth, areaHeight));
-			area3 = grayFrame(Rect(2 * areaWidth, 0, areaWidth, areaHeight));
-			area4 = grayFrame(Rect(0, areaHeight, areaWidth, areaHeight));
-			area5 = grayFrame(Rect(areaWidth, areaHeight, areaWidth, areaHeight));
-			area6 = grayFrame(Rect(2 * areaWidth, areaHeight, areaWidth, areaHeight));
-			area7 = grayFrame(Rect(0, 2 * areaHeight, areaWidth, areaHeight));
-			area8 = grayFrame(Rect(areaWidth, 2 * areaHeight, areaWidth, areaHeight));
-			area9 = grayFrame(Rect(2 * areaWidth, 2 * areaHeight, areaWidth, areaHeight));
-
-			// Calculate average (mean) intensity on each area, add to vector
-			vector<double> meanIntensities;
-			meanIntensities.push_back(mean(area1)[0]);
-			meanIntensities.push_back(mean(area2)[0]);
-			meanIntensities.push_back(mean(area3)[0]);
-			meanIntensities.push_back(mean(area4)[0]);
-			meanIntensities.push_back(mean(area5)[0]);
-			meanIntensities.push_back(mean(area6)[0]);
-			meanIntensities.push_back(mean(area7)[0]);
-			meanIntensities.push_back(mean(area8)[0]);
-			meanIntensities.push_back(mean(area9)[0]);
-
-			// Calculate the position on the intensity scale of the image, for each area
-			vector<double> sortedIntensities(meanIntensities.size());
-			copy(meanIntensities.begin(), meanIntensities.end(), sortedIntensities.begin());
-			sort(sortedIntensities.begin(), sortedIntensities.end());
-
-			vector<double> omd(meanIntensities.size());
-			for(int i = 0; i < meanIntensities.size(); i++){
-				int pos = find(sortedIntensities.begin(), sortedIntensities.end(), meanIntensities[i]) - sortedIntensities.begin();
-				omd[i] = pos;
-			}
-
-			_videoDescriptor.push_back(Descriptor(omd));
-
-			k = 0;
-		}
-		k++;
-	}
-
-}
-
-/*
- * Retorna un vector que corresponde al descriptor del video capture completo.
- * Cada Descriptor es el descriptor de un frame, contiene los 4 histogramas.
- */
-void getVideoDescriptor(VideoCapture &_capture, vector<Descriptor> &_videoDescriptor)
-{
+void getVideoDescriptor(VideoCapture &_capture, vector<Descriptor> &_videoDescriptor, const DescType &_type){
 	_videoDescriptor.clear();
 
 	double fps = _capture.get(CV_CAP_PROP_FPS);
@@ -115,57 +32,13 @@ void getVideoDescriptor(VideoCapture &_capture, vector<Descriptor> &_videoDescri
 
 		if (k == skipFrames) {
 			cvtColor(frame, grayFrame, COLOR_BGR2GRAY);
-			int frameWidth = _capture.get(CV_CAP_PROP_FRAME_WIDTH);
-			int frameHeight = _capture.get(CV_CAP_PROP_FRAME_HEIGHT);
-
-			/**
-			 * | 1 | 2 |
-		 	 * | 3 | 4 |
-		 	 */
-			int areaWidth = frameWidth / 2;
-			int areaHeight = frameHeight / 2;
-			Mat area1, area2, area3, area4;
-			area1 = grayFrame(Rect(0, 0, areaWidth, areaHeight));
-			area2 = grayFrame(Rect(areaWidth, 0, areaWidth, areaHeight));
-			area3 = grayFrame(Rect(0, areaHeight, areaWidth, areaHeight));
-			area4 = grayFrame(Rect(areaWidth, areaHeight, areaWidth, areaHeight));
-
-			//Histogram
-			int histSize = 128;
-			//the upper boundary is exclusive
-			float range[] = {0, 256};
-			const float *histRange = {range};
-			bool uniform = true;
-			bool accumulate = false;
-			Mat hist1, hist2, hist3, hist4;
-
-			// Calculate histogram for each area
-			calcHist(&area1, 1, 0, Mat(), hist1, 1, &histSize, &histRange, uniform, accumulate);
-			calcHist(&area2, 1, 0, Mat(), hist2, 1, &histSize, &histRange, uniform, accumulate);
-			calcHist(&area3, 1, 0, Mat(), hist3, 1, &histSize, &histRange, uniform, accumulate);
-			calcHist(&area4, 1, 0, Mat(), hist4, 1, &histSize, &histRange, uniform, accumulate);
-
-			// Normalize each histogram and copy to vector
-			double totalPxs = areaHeight * areaWidth;
-			vector<double> normHist1 = normalizeHist(hist1, histSize, totalPxs);
-			vector<double> normHist2 = normalizeHist(hist2, histSize, totalPxs);
-			vector<double> normHist3 = normalizeHist(hist3, histSize, totalPxs);
-			vector<double> normHist4 = normalizeHist(hist4, histSize, totalPxs);
-
-			vector<double> whole;
-			whole.reserve(normHist1.size() + normHist2.size() + normHist3.size() + normHist4.size());
-			whole.insert(whole.end(), normHist1.begin(), normHist1.end());
-			whole.insert(whole.end(), normHist2.begin(), normHist2.end());
-			whole.insert(whole.end(), normHist3.begin(), normHist3.end());
-			whole.insert(whole.end(), normHist4.begin(), normHist4.end());
-
-			// Frame descriptor: the 4 histograms
-			_videoDescriptor.push_back(Descriptor(whole));
+			_videoDescriptor.push_back(Descriptor(grayFrame, _type));
 
 			k = 0;
 		}
 		k++;
 	}
+
 }
 
 int main(int _nargs, char** _vargs)
@@ -194,7 +67,7 @@ int main(int _nargs, char** _vargs)
 
 	// Create the descriptor of the video
 	vector<Descriptor> videoDescriptor;
-	getVideoDescriptor(capture, videoDescriptor);
+	getVideoDescriptor(capture, videoDescriptor, OMD);
 
 	/** TEST *
 	 int n = Helper::getRandomNumber(505, 600);
@@ -246,7 +119,7 @@ int main(int _nargs, char** _vargs)
 
 		// Do the hustle
 		vector<Descriptor> queryDescriptors;
-		getVideoDescriptor(capture, queryDescriptors);
+		getVideoDescriptor(capture, queryDescriptors, HIST);
 
 		Result queryResults(location, 3);
 		for (Descriptor d : queryDescriptors)
