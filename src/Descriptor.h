@@ -15,7 +15,7 @@ public:
 	// Empty constructor
 	Descriptor();
 	// Constructor
-	Descriptor(const vector<double> &_h1, const vector<double> &_h2, const vector<double> &_h3, const vector<double> &_h4);
+	Descriptor(const vector<double> &_v);
 	// Copy constructor
 	Descriptor(const Descriptor &_other);
 	// Assignment operator
@@ -24,18 +24,14 @@ public:
 	// Returns a single vector representing the descriptor data
 	inline vector<double> getDescriptorVector() const
 	{
-		return whole;
+		return vec;
 	}
 	// Gets the dimension of the descriptor
 	inline size_t getDimension() const
 	{
-		return whole.size();
+		return vec.size();
 	}
 
 private:
-	vector<double> hist1;
-	vector<double> hist2;
-	vector<double> hist3;
-	vector<double> hist4;
-	vector<double> whole;
+	vector<double> vec;
 };

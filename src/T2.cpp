@@ -85,7 +85,7 @@ void getOMDDescriptor(VideoCapture &_capture, vector<Descriptor> &_videoDescript
 				omd[i] = pos;
 			}
 
-			_videoDescriptor.push_back(Descriptor(omd, NULL, NULL, NULL));
+			_videoDescriptor.push_back(Descriptor(omd));
 
 			k = 0;
 		}
@@ -152,8 +152,15 @@ void getVideoDescriptor(VideoCapture &_capture, vector<Descriptor> &_videoDescri
 			vector<double> normHist3 = normalizeHist(hist3, histSize, totalPxs);
 			vector<double> normHist4 = normalizeHist(hist4, histSize, totalPxs);
 
+			vector<double> whole;
+			whole.reserve(normHist1.size() + normHist2.size() + normHist3.size() + normHist4.size());
+			whole.insert(whole.end(), normHist1.begin(), normHist1.end());
+			whole.insert(whole.end(), normHist2.begin(), normHist2.end());
+			whole.insert(whole.end(), normHist3.begin(), normHist3.end());
+			whole.insert(whole.end(), normHist4.begin(), normHist4.end());
+
 			// Frame descriptor: the 4 histograms
-			_videoDescriptor.push_back(Descriptor(normHist1, normHist2, normHist3, normHist4));
+			_videoDescriptor.push_back(Descriptor(whole));
 
 			k = 0;
 		}
