@@ -72,3 +72,27 @@ int Helper::getRandomNumber(const int _min, const int _max)
 	int number = _min + (rand() % (int) (_max - _min + 1));
 	return number;
 }
+
+void Helper::findNearestFrame(const Descriptor &_targetFrame, const vector<Descriptor> &_queryFrames, const MetricType &_metric, vector<Descriptor> &_output)
+{
+	Metric::setMetricType(_metric);
+
+	vector<pair<double, Descriptor*>> data;
+	for (Descriptor d : _queryFrames)
+	{
+		double distance = Metric::getMetric()(d, _targetFrame);
+		data.push_back(make_pair(distance, &d));
+	}
+
+	sort(data.begin(), data.end(), &Helper::comparePairs);
+
+	_output.clear();
+	_output.push_back(*data[0].second);
+	_output.push_back(*data[1].second);
+	_output.push_back(*data[2].second);
+}
+
+bool Helper::comparePairs(const pair<double, Descriptor*> &_p1, const pair<double, Descriptor*> &_p2)
+{
+	return _p1.first < _p2.first;
+}

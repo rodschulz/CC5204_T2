@@ -10,6 +10,8 @@ using namespace std;
 
 Metric::Metric()
 {
+	type = EUCLIDEAN;
+	metric = &Metric::EuclideanMetric;
 }
 
 Metric::~Metric()
@@ -63,4 +65,35 @@ double Metric::MaxMetric(const Descriptor &_desc1, const Descriptor &_desc2)
 	}
 
 	return result;
+}
+
+Metric *Metric::getInstance()
+{
+	static Metric* instance = new Metric();
+	return instance;
+}
+
+void Metric::setMetricType(const MetricType &_type)
+{
+	getInstance()->type = _type;
+	switch (_type)
+	{
+		case MANHATTAN:
+			getInstance()->metric = &Metric::ManhattanMetric;
+		break;
+
+		default:
+		case EUCLIDEAN:
+			getInstance()->metric = &Metric::EuclideanMetric;
+		break;
+
+		case MAX:
+			getInstance()->metric = &Metric::MaxMetric;
+		break;
+	}
+}
+
+functionPointer Metric::getMetric()
+{
+	return getInstance()->metric;
 }

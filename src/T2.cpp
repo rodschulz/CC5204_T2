@@ -9,36 +9,66 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include "Descriptor.h"
-#include "Index.h"
 #include "Helper.h"
-#include "Result.h"
+#include "Match.h"
+#include "Metric.h"
 
 using namespace std;
 using namespace cv;
 
-void getVideoDescriptor(VideoCapture &_capture, vector<Descriptor> &_videoDescriptor, const DescType &_type){
-	_videoDescriptor.clear();
+bool getVideoDescriptor(const string &_videoLocation, vector<Descriptor> &_outputDescriptor, const DescType &_type, const int &_subsamplingFrameRate)
+{
+	bool statusOk = true;
 
-	double fps = _capture.get(CV_CAP_PROP_FPS);
-	double totalFrames = _capture.get(CV_CAP_PROP_FRAME_COUNT);
-
-	int skipFrames = fps / 3 - 1;
-
-	Mat frame, grayFrame;
-	int k = 0;
-	for (int j = 0; j <= totalFrames; j++) {
-		if (!_capture.grab() || !_capture.retrieve(frame))
-			break;
-
-		if (k == skipFrames) {
-			cvtColor(frame, grayFrame, COLOR_BGR2GRAY);
-			_videoDescriptor.push_back(Descriptor(grayFrame, _type));
-
-			k = 0;
+	if (_subsamplingFrameRate < 1)
+	{
+		cout << "ERROR: invalid frame rate to calculate descriptor\n";
+		statusOk = false;
+	}
+	else
+	{
+		VideoCapture capture;
+		capture.open(_videoLocation);
+		if (!capture.isOpened())
+		{
+			cout << "ERROR: Can't open target video " << _videoLocation << endl;
+			statusOk = false;
 		}
-		k++;
+		else
+		{
+			_outputDescriptor.clear();
+
+			double fps = capture.get(CV_CAP_PROP_FPS);
+			int skipFrames = fps / _subsamplingFrameRate - 1;
+
+			Mat frame, grayFrame;
+			int k = 0;
+			double totalFrames = capture.get(CV_CAP_PROP_FRAME_COUNT);
+
+			cout << "Total frames in query: " << totalFrames << "\n";
+
+			for (int j = 0; j < totalFrames; j++)
+			{
+				if (!capture.grab() || !capture.retrieve(frame))
+				{
+					cout << "ERROR: Can't get new frame. Finishing loop.\n";
+					statusOk = false;
+					break;
+				}
+
+				if (k == skipFrames)
+				{
+					cvtColor(frame, grayFrame, COLOR_BGR2GRAY);
+					_outputDescriptor.push_back(Descriptor(grayFrame, _type));
+
+					k = 0;
+				}
+				k++;
+			}
+		}
 	}
 
+	return statusOk;
 }
 
 int main(int _nargs, char** _vargs)
@@ -49,9 +79,25 @@ int main(int _nargs, char** _vargs)
 		return EXIT_FAILURE;
 	}
 
+	DescType descriptorType = OMD;
+	MetricType metricType = EUCLIDEAN;
+
 	// Get input file name
 	string inputFile = _vargs[1];
-	srand(time(NULL));
+
+	// Calculate the descriptors for each query video
+	vector<string> queryLocations = Helper::getQueryLocations(inputFile);
+	map<string, vector<Descriptor>> queryDescriptors;
+	for (String query : queryLocations)
+	{
+		cout << "Processing query: " << query << "\n";
+
+		queryDescriptors[query] = vector<Descriptor>();
+		if (!getVideoDescriptor(query, queryDescriptors[query], descriptorType, 5))
+			queryDescriptors.erase(query);
+
+		cout << "Query video descriptor length: " << queryDescriptors[query].size() << "\n";
+	}
 
 	// Descriptors estimation
 	string targetLocation = Helper::getTargetLocation(inputFile);
@@ -61,74 +107,77 @@ int main(int _nargs, char** _vargs)
 	capture.open(targetLocation);
 	if (!capture.isOpened())
 	{
-		cout << "Can't open target video " << targetLocation << endl;
+		cout << "ERROR: Can't open target video " << targetLocation << endl;
 		return EXIT_FAILURE;
 	}
-
-	// Create the descriptor of the video
-	vector<Descriptor> videoDescriptor;
-	getVideoDescriptor(capture, videoDescriptor, OMD);
-
-	/** TEST *
-	 int n = Helper::getRandomNumber(505, 600);
-	 videoDescriptor.clear();
-	 videoDescriptor.reserve(n);
-	 for (int i = 0; i < n; i++)
-	 {
-	 vector<vector<double>> v(4);
-	 for (int k = 0; k < 4; k++)
-	 {
-	 v[k] = vector<double>(128, 0);
-	 for (int j = 0; j < 128; j++)
-	 {
-	 double d = Helper::getRandomNumber(1, 100);
-	 v[k][j] = d / 100.0;
-	 }
-	 }
-
-	 videoDescriptor.push_back(Descriptor(v[0], v[1], v[2], v[3]));
-	 }
-	 ** TEMPORAL */
-
-	cout << "Target video descriptor length: " << videoDescriptor.size() << "\n";
-
-	// Index construction (put the magic into the magic)
-	Index index = Index(videoDescriptor, EUCLIDEAN);
-
-	/** TEST *
-	 Descriptor query = videoDescriptor[500];
-	 query.whole[0] += 0.2;
-	 query.whole[10] -= 0.3;
-	 pair<int, const Descriptor *> nn = index.findNearestNeighbor(query);
-	 ** TEST */
-
-	vector<Result> results;
-	vector<string> queryLocation = Helper::getQueryLocations(inputFile);
-	for (string location : queryLocation)
+	else
 	{
-		cout << "Processing query: " << location << "\n";
+		int samplingFrameRate = 3;
+		double fps = capture.get(CV_CAP_PROP_FPS);
+		int skipFrames = fps / samplingFrameRate - 1;
 
-		VideoCapture queryCapture;
-		queryCapture.open(location);
+		double totalFrames = capture.get(CV_CAP_PROP_FRAME_COUNT);
+		vector<pair<int, Match>> matches;
+		matches.reserve((int) (totalFrames / skipFrames) + 1);
 
-		if (!queryCapture.isOpened())
+		cout << "Total frames in target: " << totalFrames << "\n";
+
+		// Process the target video searching for each query
+		Mat frame, grayFrame;
+		int k = 0;
+		int t = 0;
+		for (int j = 0; j <= totalFrames; j++)
 		{
-			cout << "Can't open target video " << targetLocation << endl;
-			return EXIT_FAILURE;
+			if (!capture.grab() || !capture.retrieve(frame))
+			{
+				cout << "ERROR: Can't get frame from target video. Finishing.\n";
+				return EXIT_FAILURE;
+			}
+
+			if (k == skipFrames)
+			{
+				cvtColor(frame, grayFrame, COLOR_BGR2GRAY);
+				Descriptor descriptor(grayFrame, descriptorType);
+
+				// Generate object to store matches for this frame
+				matches.push_back(make_pair(j, Match(j)));
+
+				// Search the current frame in each query video
+				for (pair<string, vector<Descriptor>> p : queryDescriptors)
+				{
+					vector<Descriptor> queryMatch;
+					Helper::findNearestFrame(descriptor, p.second, metricType, queryMatch);
+					matches.back().second.addMatch(p.first, queryMatch);
+				}
+
+				k = 0;
+			}
+			k++;
+
+			if (t == 10000)
+			{
+				cout << "Processing frame " << j << "/" << totalFrames << "\n";
+				t = 0;
+			}
+			t++;
 		}
 
-		// Do the hustle
-		vector<Descriptor> queryDescriptors;
-		getVideoDescriptor(capture, queryDescriptors, HIST);
+		cout << "Extracted " << matches.size() << " from target video.\n";
 
-		Result queryResults(location, 3);
-		for (Descriptor d : queryDescriptors)
+		map<string, pair<int, double>> closestFrame;
+		for (String query : queryLocations)
+			closestFrame[query] = make_pair(-1, numeric_limits<double>::max());
+
+		// Extract the closer frame to each query
+		for (pair<int, Match> p : matches)
 		{
-			pair<int, const Descriptor *> NN = index.findNearestNeighbor(d);
-			queryResults.addMatchingFrame(NN);
+			for (String query : queryLocations)
+			{
+//				if (closestFrame[query].second > p.second.getMinDistance())
+//				{
+//				}
+			}
 		}
-
-		results.push_back(queryResults);
 	}
 
 	return EXIT_SUCCESS;

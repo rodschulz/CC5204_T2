@@ -10,11 +10,12 @@
 #include <opencv2/imgproc/imgproc.hpp>
 
 using namespace std;
+using namespace cv;
 
 // Types of descriptors
 typedef enum DescType
 {
-	HIST, OMD
+	HIST, OMD // Oh My Dad!
 } DescType;
 
 class Descriptor
@@ -24,7 +25,7 @@ public:
 	// Empty constructor
 	Descriptor();
 	// Constructor
-	Descriptor(cv::Mat &_frame, const DescType &_type);
+	Descriptor(Mat &_frame, const DescType &_type);
 	// Copy constructor
 	Descriptor(const Descriptor &_other);
 	// Assignment operator
@@ -43,7 +44,7 @@ public:
 
 private:
 	vector<double> vec;
-	vector<double> Histogram(cv::Mat &_frame);
-	vector<double> Omd(cv::Mat &_frame);
+	vector<double> Histogram(Mat &_frame);
+	vector<double> Omd(Mat &_frame);
 	vector<double> normalizeHist(vector<double> hist, int bins, double total);
 };

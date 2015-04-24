@@ -17,11 +17,11 @@ Descriptor::Descriptor(cv::Mat &_frame, const DescType &_type)
 	{
 		case HIST:
 			vec = Histogram(_frame);
-			break;
+		break;
 
 		case OMD:
 			vec = Omd(_frame);
-			break;
+		break;
 	}
 }
 
@@ -44,15 +44,16 @@ Descriptor &Descriptor::operator=(const Descriptor &_other)
 	return *this;
 }
 
-vector<double> Descriptor::Histogram(cv::Mat &_grayFrame) {
+vector<double> Descriptor::Histogram(Mat &_grayFrame)
+{
 	cv::Size s = _grayFrame.Mat::size();
 	int frameWidth = s.width;
 	int frameHeight = s.height;
 
 	/**
-     * | 1 | 2 |
-     * | 3 | 4 |
-     */
+	 * | 1 | 2 |
+	 * | 3 | 4 |
+	 */
 	int areaWidth = frameWidth / 2;
 	int areaHeight = frameHeight / 2;
 	cv::Mat area1, area2, area3, area4;
@@ -64,8 +65,10 @@ vector<double> Descriptor::Histogram(cv::Mat &_grayFrame) {
 	//Histogram
 	int histSize = 128;
 	//the upper boundary is exclusive
-	float range[] = {0, 256};
-	const float *histRange = {range};
+	float range[] =
+	{ 0, 256 };
+	const float *histRange =
+	{ range };
 	bool uniform = true;
 	bool accumulate = false;
 	cv::Mat hist1, hist2, hist3, hist4;
@@ -94,24 +97,27 @@ vector<double> Descriptor::Histogram(cv::Mat &_grayFrame) {
 }
 
 /* Normaliza histograma segun el total de pixeles del area */
-vector<double> Descriptor::normalizeHist(vector<double> hist, int bins, double total){
-	for(int i = 0; i < bins; i++){
-		hist[i] = hist[i]/total;
+vector<double> Descriptor::normalizeHist(vector<double> hist, int bins, double total)
+{
+	for (int i = 0; i < bins; i++)
+	{
+		hist[i] = hist[i] / total;
 	}
 	return hist;
 }
 
-vector<double> Descriptor::Omd(cv::Mat &_grayFrame){
+vector<double> Descriptor::Omd(Mat &_grayFrame)
+{
 	cv::Size s = _grayFrame.Mat::size();
 	int frameWidth = s.width;
 	int frameHeight = s.height;
 
 	/**
-     * |  1 |  2 |  3 | ... | 9  | 10 |
-     * | 11 | 12 | 13 | ... ...  | 20 |
-     * ...
-     * | 91 | 92 | 93 | ... ...  | 100|
-     */
+	 * |  1 |  2 |  3 | ... | 9  | 10 |
+	 * | 11 | 12 | 13 | ... ...  | 20 |
+	 * ...
+	 * | 91 | 92 | 93 | ... ...  | 100|
+	 */
 	//TODO dejar numero de divisiones como parametro
 	int N = 10;
 	int areaWidth = frameWidth / N;
@@ -121,15 +127,19 @@ vector<double> Descriptor::Omd(cv::Mat &_grayFrame){
 	vector<double> meanIntensities;
 	int onCol = 0;
 	int onRow = 0;
-	for(int i = 0; i < N*N; i++) {
+	for (int i = 0; i < N * N; i++)
+	{
 		cv::Mat currArea;
 		currArea = _grayFrame(cv::Rect(onCol * areaWidth, onRow * areaHeight, areaWidth, areaHeight));
 		meanIntensities.push_back(cv::mean(currArea)[0]);
 
-		if (onCol == N-1){
+		if (onCol == N - 1)
+		{
 			onCol = 0;
 			onRow++;
-		}else{
+		}
+		else
+		{
 			onCol++;
 		}
 	}
@@ -137,10 +147,11 @@ vector<double> Descriptor::Omd(cv::Mat &_grayFrame){
 	// Calculate the position on the intensity scale of the image, for each area
 	vector<double> sortedIntensities(meanIntensities.size());
 	copy(meanIntensities.begin(), meanIntensities.end(), sortedIntensities.begin());
-	sort(sortedIntensities.begin(), sortedIntensities.end());;
+	sort(sortedIntensities.begin(), sortedIntensities.end());
 
 	vector<double> omd(meanIntensities.size());
-	for(int i = 0; i < meanIntensities.size(); i++){
+	for (size_t i = 0; i < meanIntensities.size(); i++)
+	{
 		int pos = find(sortedIntensities.begin(), sortedIntensities.end(), meanIntensities[i]) - sortedIntensities.begin();
 		omd[i] = pos;
 	}

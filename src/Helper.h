@@ -6,6 +6,8 @@
 
 #include <vector>
 #include <string>
+#include "Descriptor.h"
+#include "Metric.h"
 
 using namespace std;
 
@@ -18,8 +20,12 @@ public:
 	static vector<string> getQueryLocations(const string &_inputFile);
 	/** Returns a random number between the given limits */
 	static int getRandomNumber(const int _min, const int _max);
+	/** Find the nearest frame in the given set of frames */
+	static void findNearestFrame(const Descriptor &_targetFrame, const vector<Descriptor> &_queryFrames, const MetricType &_metric, vector<Descriptor> &_output);
 
 private:
 	Helper();
 	~Helper();
+
+	static bool comparePairs(const pair<double, Descriptor*> &_p1, const pair<double, Descriptor*> &_p2);
 };
