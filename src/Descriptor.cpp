@@ -143,7 +143,7 @@ void Descriptor::Omd(const Mat &_grayFrame)
 	sort(sortedIntensities.begin(), sortedIntensities.end());
 
 	data.clear();
-	data(meanIntensities.size());
+	data.resize(meanIntensities.size());
 	for (size_t i = 0; i < meanIntensities.size(); i++)
 	{
 		int pos = find(sortedIntensities.begin(), sortedIntensities.end(), meanIntensities[i]) - sortedIntensities.begin();

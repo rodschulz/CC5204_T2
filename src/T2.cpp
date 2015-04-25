@@ -101,7 +101,7 @@ int main(int _nargs, char** _vargs)
 		return EXIT_FAILURE;
 	}
 
-	DescType descriptorType = HIST;
+	DescType descriptorType = OMD;
 	MetricType metricType = MANHATTAN;
 
 	// Get input file name
