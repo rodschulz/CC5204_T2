@@ -5,12 +5,17 @@
 #pragma once
 
 #include <vector>
+#include <memory>
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 
 using namespace std;
 using namespace cv;
+
+// Forward declaration
+class Descriptor;
+typedef shared_ptr<Descriptor> DescriptorPtr;
 
 // Types of descriptors
 typedef enum DescType
@@ -25,7 +30,7 @@ public:
 	// Empty constructor
 	Descriptor();
 	// Constructor
-	Descriptor(Mat &_frame, const int _frameNumber, const DescType &_type);
+	Descriptor(const Mat &_frame, const int _frameNumber, const DescType &_type);
 	// Copy constructor
 	Descriptor(const Descriptor &_other);
 	// Assignment operator
@@ -51,7 +56,8 @@ private:
 	int originFrameNumber;
 	vector<double> data;
 
-	vector<double> Histogram(Mat &_frame);
-	vector<double> Omd(Mat &_frame);
-	vector<double> normalizeHist(vector<double> hist, int bins, double total);
+	void Histogram(const Mat &_frame);
+	void Omd(const Mat &_frame);
+	// Normaliza histograma segun el total de pixeles del area
+	void normalizeHist(const Mat &_hist, const int _bins, const double _total, vector<double> &_normalizedHist);
 };

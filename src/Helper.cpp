@@ -73,22 +73,21 @@ int Helper::getRandomNumber(const int _min, const int _max)
 	return number;
 }
 
-void Helper::findNearestFrame(const Descriptor &_targetFrame, const vector<Descriptor> &_queryFrames, const MetricType &_metric, vector<Match> &_output)
+void Helper::findNearestFrames(const DescriptorPtr &_targetFrame, const vector<DescriptorPtr> &_queryFrames, const MetricType &_metric, vector<Match> &_output)
 {
 	Metric::setMetricType(_metric);
 
 	vector<Match> data;
-	for (Descriptor d : _queryFrames)
+	for (DescriptorPtr descriptor : _queryFrames)
 	{
-		double distance = Metric::getMetric()(d, _targetFrame);
-		data.push_back(Match(distance, d, _targetFrame));
+		double distance = Metric::getMetric()(*descriptor, *_targetFrame);
+		data.push_back(Match(distance, descriptor, _targetFrame));
 	}
 
 	sort(data.begin(), data.end(), &Helper::compare);
 
 	int n = 3;
 	_output.clear();
-//	copy(data.begin(), data.begin() + n, _output.begin());
 	for (int i = 0; i < n; i++)
 		_output.push_back(data[i]);
 }
@@ -96,4 +95,12 @@ void Helper::findNearestFrame(const Descriptor &_targetFrame, const vector<Descr
 bool Helper::compare(const Match &_m1, const Match &_m2)
 {
 	return _m1.distance < _m2.distance;
+}
+
+int Helper::getSkipFrames(const int _samplingRate, VideoCapture &_capture)
+{
+	double fps = _capture.get(CV_CAP_PROP_FPS);
+	int skipFrames = fps / _samplingRate - 1;
+
+	return skipFrames;
 }

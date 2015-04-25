@@ -13,16 +13,16 @@ Descriptor::Descriptor()
 	data.clear();
 }
 
-Descriptor::Descriptor(cv::Mat &_frame, const int _frameNumber, const DescType &_type)
+Descriptor::Descriptor(const Mat &_frame, const int _frameNumber, const DescType &_type)
 {
 	switch (_type)
 	{
 		case HIST:
-			data = Histogram(_frame);
+			Histogram(_frame);
 		break;
 
 		case OMD:
-			data = Omd(_frame);
+			Omd(_frame);
 		break;
 	}
 
@@ -50,7 +50,7 @@ Descriptor &Descriptor::operator=(const Descriptor &_other)
 	return *this;
 }
 
-vector<double> Descriptor::Histogram(Mat &_grayFrame)
+void Descriptor::Histogram(const Mat &_grayFrame)
 {
 	cv::Size s = _grayFrame.Mat::size();
 	int frameWidth = s.width;
@@ -77,42 +77,29 @@ vector<double> Descriptor::Histogram(Mat &_grayFrame)
 	{ range };
 	bool uniform = true;
 	bool accumulate = false;
-	cv::Mat hist1, hist2, hist3, hist4;
+	Mat hist1, hist2, hist3, hist4;
 
 	// Calculate histogram for each area
-	calcHist(&area1, 1, 0, cv::Mat(), hist1, 1, &histSize, &histRange, uniform, accumulate);
-	calcHist(&area2, 1, 0, cv::Mat(), hist2, 1, &histSize, &histRange, uniform, accumulate);
-	calcHist(&area3, 1, 0, cv::Mat(), hist3, 1, &histSize, &histRange, uniform, accumulate);
-	calcHist(&area4, 1, 0, cv::Mat(), hist4, 1, &histSize, &histRange, uniform, accumulate);
+	calcHist(&area1, 1, 0, Mat(), hist1, 1, &histSize, &histRange, uniform, accumulate);
+	calcHist(&area2, 1, 0, Mat(), hist2, 1, &histSize, &histRange, uniform, accumulate);
+	calcHist(&area3, 1, 0, Mat(), hist3, 1, &histSize, &histRange, uniform, accumulate);
+	calcHist(&area4, 1, 0, Mat(), hist4, 1, &histSize, &histRange, uniform, accumulate);
 
 	// Normalize each histogram and copy to vector
 	double totalPxs = areaHeight * areaWidth;
-	vector<double> normHist1 = Descriptor::normalizeHist(hist1, histSize, totalPxs);
-	vector<double> normHist2 = Descriptor::normalizeHist(hist2, histSize, totalPxs);
-	vector<double> normHist3 = Descriptor::normalizeHist(hist3, histSize, totalPxs);
-	vector<double> normHist4 = Descriptor::normalizeHist(hist4, histSize, totalPxs);
-
-	vector<double> whole;
-	whole.reserve(normHist1.size() + normHist2.size() + normHist3.size() + normHist4.size());
-	whole.insert(whole.end(), normHist1.begin(), normHist1.end());
-	whole.insert(whole.end(), normHist2.begin(), normHist2.end());
-	whole.insert(whole.end(), normHist3.begin(), normHist3.end());
-	whole.insert(whole.end(), normHist4.begin(), normHist4.end());
-
-	return whole;
+	normalizeHist(hist1, histSize, totalPxs, data);
+	normalizeHist(hist2, histSize, totalPxs, data);
+	normalizeHist(hist3, histSize, totalPxs, data);
+	normalizeHist(hist4, histSize, totalPxs, data);
 }
 
-/* Normaliza histograma segun el total de pixeles del area */
-vector<double> Descriptor::normalizeHist(vector<double> hist, int bins, double total)
+void Descriptor::normalizeHist(const Mat &_hist, const int _bins, const double _total, vector<double> &_normalizedHist)
 {
-	for (int i = 0; i < bins; i++)
-	{
-		hist[i] = hist[i] / total;
-	}
-	return hist;
+	for (int i = 0; i < _bins; i++)
+		_normalizedHist.push_back(_hist.at<float>(i, 0) / _total);
 }
 
-vector<double> Descriptor::Omd(Mat &_grayFrame)
+void Descriptor::Omd(const Mat &_grayFrame)
 {
 	cv::Size s = _grayFrame.Mat::size();
 	int frameWidth = s.width;
@@ -155,12 +142,11 @@ vector<double> Descriptor::Omd(Mat &_grayFrame)
 	copy(meanIntensities.begin(), meanIntensities.end(), sortedIntensities.begin());
 	sort(sortedIntensities.begin(), sortedIntensities.end());
 
-	vector<double> omd(meanIntensities.size());
+	data.clear();
+	data(meanIntensities.size());
 	for (size_t i = 0; i < meanIntensities.size(); i++)
 	{
 		int pos = find(sortedIntensities.begin(), sortedIntensities.end(), meanIntensities[i]) - sortedIntensities.begin();
-		omd[i] = pos;
+		data[i] = pos;
 	}
-
-	return omd;
 }

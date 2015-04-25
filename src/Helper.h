@@ -9,6 +9,7 @@
 #include "Descriptor.h"
 #include "Metric.h"
 #include "MatchArray.h"
+#include <opencv2/highgui/highgui.hpp>
 
 using namespace std;
 
@@ -22,7 +23,9 @@ public:
 	/** Returns a random number between the given limits */
 	static int getRandomNumber(const int _min, const int _max);
 	/** Find the nearest frame in the given set of frames */
-	static void findNearestFrame(const Descriptor &_targetFrame, const vector<Descriptor> &_queryFrames, const MetricType &_metric, vector<Match> &_output);
+	static void findNearestFrames(const DescriptorPtr &_targetFrame, const vector<DescriptorPtr> &_queryFrames, const MetricType &_metric, vector<Match> &_output);
+	/** Returns the number of frames to be skipped to reach the desired sampling rate */
+	static int getSkipFrames(const int _samplingRate, VideoCapture &_capture);
 
 private:
 	Helper();

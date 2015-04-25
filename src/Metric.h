@@ -36,6 +36,5 @@ private:
 	~Metric();
 
 	MetricType type;
-//	double (*metric)(const Descriptor &_desc1, const Descriptor &_desc2);
 	functionPointer metric;
 };
