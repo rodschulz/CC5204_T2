@@ -10,7 +10,7 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include "Descriptor.h"
 #include "Helper.h"
-#include "Match.h"
+#include "MatchArray.h"
 #include "Metric.h"
 
 using namespace std;
@@ -59,7 +59,7 @@ bool getVideoDescriptor(const string &_videoLocation, vector<Descriptor> &_outpu
 				if (k == skipFrames)
 				{
 					cvtColor(frame, grayFrame, COLOR_BGR2GRAY);
-					_outputDescriptor.push_back(Descriptor(grayFrame, _type));
+					_outputDescriptor.push_back(Descriptor(grayFrame, j, _type));
 
 					k = 0;
 				}
@@ -117,7 +117,7 @@ int main(int _nargs, char** _vargs)
 		int skipFrames = fps / samplingFrameRate - 1;
 
 		double totalFrames = capture.get(CV_CAP_PROP_FRAME_COUNT);
-		vector<pair<int, Match>> matches;
+		vector<MatchArray> matches;
 		matches.reserve((int) (totalFrames / skipFrames) + 1);
 
 		cout << "Total frames in target: " << totalFrames << "\n";
@@ -126,28 +126,28 @@ int main(int _nargs, char** _vargs)
 		Mat frame, grayFrame;
 		int k = 0;
 		int t = 0;
-		for (int j = 0; j <= totalFrames; j++)
+		for (int j = 0; j < totalFrames; j++)
 		{
 			if (!capture.grab() || !capture.retrieve(frame))
 			{
 				cout << "ERROR: Can't get frame from target video. Finishing.\n";
-				return EXIT_FAILURE;
+				break;
 			}
 
 			if (k == skipFrames)
 			{
 				cvtColor(frame, grayFrame, COLOR_BGR2GRAY);
-				Descriptor descriptor(grayFrame, descriptorType);
+				Descriptor descriptor(grayFrame, j, descriptorType);
 
 				// Generate object to store matches for this frame
-				matches.push_back(make_pair(j, Match(j)));
+				matches.push_back(MatchArray(j));
 
 				// Search the current frame in each query video
 				for (pair<string, vector<Descriptor>> p : queryDescriptors)
 				{
-					vector<Descriptor> queryMatch;
+					vector<Match> queryMatch;
 					Helper::findNearestFrame(descriptor, p.second, metricType, queryMatch);
-					matches.back().second.addMatch(p.first, queryMatch);
+					matches.back().addMatch(p.first, queryMatch);
 				}
 
 				k = 0;
@@ -164,19 +164,25 @@ int main(int _nargs, char** _vargs)
 
 		cout << "Extracted " << matches.size() << " from target video.\n";
 
-		map<string, pair<int, double>> closestFrame;
+		map<string, Match> closestFrame;
 		for (String query : queryLocations)
-			closestFrame[query] = make_pair(-1, numeric_limits<double>::max());
+			closestFrame[query] = Match(numeric_limits<double>::max(), Descriptor(), Descriptor());
 
 		// Extract the closer frame to each query
-		for (pair<int, Match> p : matches)
+		for (MatchArray array : matches)
 		{
 			for (String query : queryLocations)
 			{
-//				if (closestFrame[query].second > p.second.getMinDistance())
-//				{
-//				}
+				Match m = array.getMinDistance(query);
+				if (closestFrame[query].distance > m.distance)
+					closestFrame[query] = m;
 			}
+		}
+
+		for (pair<string, Match> p : closestFrame)
+		{
+			double matchTime = p.second.target.getFrame() / fps;
+			cout << "Closer time to video " << p.first << " is " << matchTime << "\n";
 		}
 	}
 

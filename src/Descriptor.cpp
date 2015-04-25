@@ -9,25 +9,30 @@
 
 Descriptor::Descriptor()
 {
+	originFrameNumber = -1;
+	data.clear();
 }
 
-Descriptor::Descriptor(cv::Mat &_frame, const DescType &_type)
+Descriptor::Descriptor(cv::Mat &_frame, const int _frameNumber, const DescType &_type)
 {
 	switch (_type)
 	{
 		case HIST:
-			vec = Histogram(_frame);
+			data = Histogram(_frame);
 		break;
 
 		case OMD:
-			vec = Omd(_frame);
+			data = Omd(_frame);
 		break;
 	}
+
+	originFrameNumber = _frameNumber;
 }
 
 Descriptor::Descriptor(const Descriptor &_other)
 {
-	vec = _other.vec;
+	data = _other.data;
+	originFrameNumber = _other.originFrameNumber;
 }
 
 Descriptor::~Descriptor()
@@ -38,7 +43,8 @@ Descriptor &Descriptor::operator=(const Descriptor &_other)
 {
 	if (this != &_other)
 	{
-		vec = _other.vec;
+		data = _other.data;
+		originFrameNumber = _other.originFrameNumber;
 	}
 
 	return *this;

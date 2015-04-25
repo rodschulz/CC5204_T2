@@ -8,6 +8,7 @@
 #include <string>
 #include "Descriptor.h"
 #include "Metric.h"
+#include "MatchArray.h"
 
 using namespace std;
 
@@ -21,11 +22,11 @@ public:
 	/** Returns a random number between the given limits */
 	static int getRandomNumber(const int _min, const int _max);
 	/** Find the nearest frame in the given set of frames */
-	static void findNearestFrame(const Descriptor &_targetFrame, const vector<Descriptor> &_queryFrames, const MetricType &_metric, vector<Descriptor> &_output);
+	static void findNearestFrame(const Descriptor &_targetFrame, const vector<Descriptor> &_queryFrames, const MetricType &_metric, vector<Match> &_output);
 
 private:
 	Helper();
 	~Helper();
 
-	static bool comparePairs(const pair<double, Descriptor*> &_p1, const pair<double, Descriptor*> &_p2);
+	static bool compare(const Match &_m1, const Match &_m2);
 };

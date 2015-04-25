@@ -73,26 +73,27 @@ int Helper::getRandomNumber(const int _min, const int _max)
 	return number;
 }
 
-void Helper::findNearestFrame(const Descriptor &_targetFrame, const vector<Descriptor> &_queryFrames, const MetricType &_metric, vector<Descriptor> &_output)
+void Helper::findNearestFrame(const Descriptor &_targetFrame, const vector<Descriptor> &_queryFrames, const MetricType &_metric, vector<Match> &_output)
 {
 	Metric::setMetricType(_metric);
 
-	vector<pair<double, Descriptor*>> data;
+	vector<Match> data;
 	for (Descriptor d : _queryFrames)
 	{
 		double distance = Metric::getMetric()(d, _targetFrame);
-		data.push_back(make_pair(distance, &d));
+		data.push_back(Match(distance, d, _targetFrame));
 	}
 
-	sort(data.begin(), data.end(), &Helper::comparePairs);
+	sort(data.begin(), data.end(), &Helper::compare);
 
+	int n = 3;
 	_output.clear();
-	_output.push_back(*data[0].second);
-	_output.push_back(*data[1].second);
-	_output.push_back(*data[2].second);
+//	copy(data.begin(), data.begin() + n, _output.begin());
+	for (int i = 0; i < n; i++)
+		_output.push_back(data[i]);
 }
 
-bool Helper::comparePairs(const pair<double, Descriptor*> &_p1, const pair<double, Descriptor*> &_p2)
+bool Helper::compare(const Match &_m1, const Match &_m2)
 {
-	return _p1.first < _p2.first;
+	return _m1.distance < _m2.distance;
 }
