@@ -100,7 +100,38 @@ bool Helper::compare(const Match &_m1, const Match &_m2)
 int Helper::getSkipFrames(const int _samplingRate, VideoCapture &_capture)
 {
 	double fps = _capture.get(CV_CAP_PROP_FPS);
-	int skipFrames = fps / _samplingRate - 1;
+	int skipFrames = ceil(fps / _samplingRate) - 1;
+	skipFrames = skipFrames == 0 ? 1 : skipFrames;
 
 	return skipFrames;
+}
+
+double Helper::getMedian(const vector<double> &_data)
+{
+	bool isOdd = _data.size() % 2 == 1;
+
+	double median;
+	if (isOdd)
+	{
+		int middle = _data.size() / 2;
+		median = _data[middle];
+	}
+	else
+	{
+		int middle = _data.size() / 2;
+		median = (_data[middle - 1] + _data[middle]) / 2;
+	}
+
+	return median;
+}
+
+void Helper::printToFile(const string &_outputFile, const vector<double> &_data)
+{
+	ofstream out;
+	out.open(_outputFile.c_str(), fstream::out);
+
+	for (double d : _data)
+		out << d << "\n";
+
+	out.close();
 }

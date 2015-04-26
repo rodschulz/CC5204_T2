@@ -26,6 +26,10 @@ public:
 	static void findNearestFrames(const DescriptorPtr &_targetFrame, const vector<DescriptorPtr> &_queryFrames, const MetricType &_metric, vector<Match> &_output);
 	/** Returns the number of frames to be skipped to reach the desired sampling rate */
 	static int getSkipFrames(const int _samplingRate, VideoCapture &_capture);
+	/** Returns the median of the given vector of data */
+	static double getMedian(const vector<double> &_data);
+	/** Prints the given array to a text file */
+	static void printToFile(const string &_outputFile, const vector<double> &_data);
 
 private:
 	Helper();

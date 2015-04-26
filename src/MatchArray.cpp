@@ -7,6 +7,10 @@
 MatchArray::MatchArray(const int &_frameNumber)
 {
 	targetVideoFrame = _frameNumber;
+	matches.clear();
+	minDistanceQuery = maxDistanceQuery = "";
+	minDistanceMatch = Match();
+	maxDistanceMatch = Match();
 }
 
 MatchArray::~MatchArray()
@@ -16,6 +20,7 @@ MatchArray::~MatchArray()
 void MatchArray::addMatch(const string &_queryName, const vector<Match> &_matchingFrames)
 {
 	matches[_queryName] = _matchingFrames;
+	minDistanceMatch = Match();
 }
 
 Match MatchArray::getQueryMinDistance(const string &_queryName)
@@ -25,18 +30,57 @@ Match MatchArray::getQueryMinDistance(const string &_queryName)
 
 double MatchArray::getMinDistance()
 {
-	double minDist = numeric_limits<double>::max();
-	for (pair<string, vector<Match>> entry : matches)
-		minDist = minDist > entry.second[0].distance ? entry.second[0].distance : minDist;
+	if (abs(minDistanceMatch.distance + 1) < 1E-10)
+		findMinDistanceMatch();
 
-	return minDist;
+	return minDistanceMatch.distance;
 }
 
 double MatchArray::getMaxDistance()
 {
-	double maxDist = -numeric_limits<double>::max();
-	for (pair<string, vector<Match>> entry : matches)
-		maxDist = maxDist < entry.second[0].distance ? entry.second[0].distance : maxDist;
+	if (abs(maxDistanceMatch.distance + 1) < 1E-10)
+		findMaxDistanceMatch();
 
-	return maxDist;
+	return maxDistanceMatch.distance;
+}
+
+string MatchArray::getMinDistanceQuery()
+{
+	if (abs(minDistanceMatch.distance + 1) < 1E-10)
+		findMinDistanceMatch();
+
+	return minDistanceQuery;
+}
+
+Match MatchArray::getMinDistanceMatch() const
+{
+	return minDistanceMatch;
+}
+
+void MatchArray::findMinDistanceMatch()
+{
+	double minDist = numeric_limits<double>::max();
+	for (pair<string, vector<Match>> entry : matches)
+	{
+		if (minDist > entry.second[0].distance)
+		{
+			minDist = entry.second[0].distance;
+			minDistanceMatch = entry.second[0];
+			minDistanceQuery = entry.first;
+		}
+	}
+}
+
+void MatchArray::findMaxDistanceMatch()
+{
+	double maxDist = numeric_limits<double>::max();
+	for (pair<string, vector<Match>> entry : matches)
+	{
+		if (maxDist < entry.second.back().distance)
+		{
+			maxDist = entry.second.back().distance;
+			maxDistanceMatch = entry.second.back();
+			maxDistanceQuery = entry.first;
+		}
+	}
 }

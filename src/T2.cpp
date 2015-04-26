@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <vector>
 #include <iostream>
+#include <chrono>
+#include <math.h>
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
@@ -14,15 +16,16 @@
 #include "Metric.h"
 
 using namespace std;
+using namespace chrono;
 using namespace cv;
 
-bool getVideoDescriptor(const string &_videoLocation, vector<DescriptorPtr> &_outputDescriptor, const DescType &_type, const int &_subsamplingFrameRate)
+bool getVideoDescriptor(const string &_videoLocation, vector<DescriptorPtr> &_outputDescriptor, const DescType &_type, const int &_skipFrames)
 {
 	bool statusOk = true;
 
-	if (_subsamplingFrameRate < 1)
+	if (_skipFrames < 0)
 	{
-		cout << "ERROR: invalid frame rate to calculate descriptor\n";
+		cout << "ERROR: number of frames to skip\n";
 		statusOk = false;
 	}
 	else
@@ -37,7 +40,6 @@ bool getVideoDescriptor(const string &_videoLocation, vector<DescriptorPtr> &_ou
 		else
 		{
 			_outputDescriptor.clear();
-			int skipFrames = Helper::getSkipFrames(_subsamplingFrameRate, capture);
 			double totalFrames = capture.get(CV_CAP_PROP_FRAME_COUNT);
 
 			cout << "Total frames in query: " << totalFrames << "\n";
@@ -53,12 +55,12 @@ bool getVideoDescriptor(const string &_videoLocation, vector<DescriptorPtr> &_ou
 					break;
 				}
 
-				if (k == skipFrames)
+				if (k == _skipFrames)
 				{
 					cvtColor(frame, grayFrame, COLOR_BGR2GRAY);
 					_outputDescriptor.push_back(DescriptorPtr(new Descriptor(grayFrame, j, _type)));
 
-					k = 0;
+					k = -1;
 				}
 				k++;
 			}
@@ -68,29 +70,106 @@ bool getVideoDescriptor(const string &_videoLocation, vector<DescriptorPtr> &_ou
 	return statusOk;
 }
 
-void getQueryDescriptors(map<string, vector<DescriptorPtr>> &_queryDescriptors, const vector<string> &_queryLocations, const DescType &_descriptorType)
+void getQueryDescriptors(map<string, vector<DescriptorPtr>> &_queryDescriptors, const vector<string> &_queryLocations, const DescType &_descriptorType, const int _skipFrames)
 {
 	for (String query : _queryLocations)
 	{
 		cout << "Processing query: " << query << "\n";
 
 		_queryDescriptors[query] = vector<DescriptorPtr>();
-		if (!getVideoDescriptor(query, _queryDescriptors[query], _descriptorType, 5))
+		if (!getVideoDescriptor(query, _queryDescriptors[query], _descriptorType, _skipFrames))
 			_queryDescriptors.erase(query);
 
 		cout << "Query video descriptor length: " << _queryDescriptors[query].size() << "\n";
 	}
 }
 
-void getQueryAppearanceTimes(const double _globalMinDist, const vector<MatchArrayPtr> &_matchesPerFrame)
+map<string, vector<Appearance>> extractQueryAppearanceTimes(vector<MatchArrayPtr> &_matchesPerFrame, const double _targetFrameRate, const double _discardThreshold)
 {
-	// Discard frames where the closest frame is farther than two times the global minimum distance
-	double discardThreshold = _globalMinDist;
+	vector<MatchArrayPtr> refinedArray1;
+	vector<double> refinedDistances1;
+	for (MatchArrayPtr array : _matchesPerFrame)
+	{
+		if (array->getMinDistance() < _discardThreshold)
+		{
+			refinedArray1.push_back(array);
+			refinedDistances1.push_back(array->getMinDistance());
+		}
+	}
+	cout << "Cleared matches size: " << refinedArray1.size() << "\n";
 
-	vector<MatchArrayPtr> clearedArray;
-	clearedArray.reserve(_matchesPerFrame.size());
-//	for (size_t i )
+	//for (MatchArrayPtr array : refinedArray1)
+	//	printf("Refined match 1 => %-50s\td: %-6.3f\tframe: %-6d\ttime: %-6.2f\n", array->getMinDistanceQuery().c_str(), array->getMinDistance(), array->getFrame(), array->getFrame() / _targetFrameRate);
 
+	// Calculate a refined threshold
+	sort(refinedDistances1.begin(), refinedDistances1.end());
+	double medianDistance = Helper::getMedian(refinedDistances1);
+	Scalar meanDistance, stdDev;
+	meanStdDev(refinedDistances1, meanDistance, stdDev);
+	double refinedThreshold = fmin(medianDistance, meanDistance[0] - stdDev[0]);
+
+	vector<MatchArrayPtr> refinedMatches;
+	vector<double> refinedDistances2;
+	for (MatchArrayPtr array : refinedArray1)
+	{
+		if (array->getMinDistance() < refinedThreshold)
+		{
+			refinedMatches.push_back(array);
+			refinedDistances2.push_back(array->getMinDistance());
+		}
+	}
+
+	cout << "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n";
+	cout << "Refined matches size: " << refinedArray1.size() << "\n";
+	for (MatchArrayPtr array : refinedMatches)
+		printf("Refined match 1 => %-50s\td: %-6.3f\tframe: %-6d\ttime: %-6.2f\n", array->getMinDistanceQuery().c_str(), array->getMinDistance(), array->getFrame(), array->getFrame() / _targetFrameRate);
+
+	// Extract appearances
+	map<string, vector<Appearance>> appearances;
+	string lastQuery = refinedMatches[0]->getMinDistanceQuery();
+	double startTime = refinedMatches[0]->getFrame() / _targetFrameRate;
+	double lastTime = startTime;
+	for (MatchArrayPtr array : refinedMatches)
+	{
+		string query = array->getMinDistanceQuery();
+		if (lastQuery.compare(query) != 0)
+		{
+			if (appearances.find(lastQuery) == appearances.end())
+				appearances[lastQuery] = vector<Appearance>();
+
+			appearances[lastQuery].push_back(Appearance(startTime, lastTime - startTime));
+			startTime = array->getFrame() / _targetFrameRate;
+		}
+
+		lastQuery = query;
+		lastTime = array->getFrame() / _targetFrameRate;
+	}
+
+	// Add last appearance
+	if (appearances.find(lastQuery) == appearances.end())
+		appearances[lastQuery] = vector<Appearance>();
+	appearances[lastQuery].push_back(Appearance(startTime, lastTime - startTime));
+
+	// Remove short appearances
+	double minimumLength = 15;
+	for (map<string, vector<Appearance>>::iterator it = appearances.begin(); it != appearances.end(); it++)
+	{
+		size_t insertPoint = 0;
+		size_t seekPoint = 0;
+		for (seekPoint = 0; seekPoint < it->second.size(); seekPoint++)
+		{
+			if (it->second[seekPoint].length >= minimumLength)
+			{
+				if (seekPoint != insertPoint)
+					it->second[insertPoint] = it->second[seekPoint];
+				insertPoint++;
+			}
+		}
+
+		it->second.erase(it->second.begin() + insertPoint, it->second.end());
+	}
+
+	return appearances;
 }
 
 int main(int _nargs, char** _vargs)
@@ -102,7 +181,7 @@ int main(int _nargs, char** _vargs)
 	}
 
 	DescType descriptorType = OMD;
-	MetricType metricType = MANHATTAN;
+	MetricType metricType = EUCLIDEAN;
 
 	// Get input file name
 	string inputFile = _vargs[1];
@@ -110,7 +189,7 @@ int main(int _nargs, char** _vargs)
 	// Get descriptors for each query video
 	vector<string> queryLocations = Helper::getQueryLocations(inputFile);
 	map<string, vector<DescriptorPtr>> queryDescriptors;
-	getQueryDescriptors(queryDescriptors, queryLocations, descriptorType);
+	getQueryDescriptors(queryDescriptors, queryLocations, descriptorType, 1);
 
 	string targetLocation = Helper::getTargetLocation(inputFile);
 	cout << "Target video: " << targetLocation << "\n";
@@ -133,10 +212,13 @@ int main(int _nargs, char** _vargs)
 
 		// Distance limits to be used later
 		double minDistance = numeric_limits<double>::max();
+		vector<double> minDistances;
+		minDistances.reserve(81000 / skipFrames + 1);
 
 		// Process the target video searching for each query
 		Mat frame, grayFrame;
 		int k = 0, t = 0;
+		high_resolution_clock::time_point t1 = high_resolution_clock::now();
 		for (int j = 0; j < totalFrames; j++)
 		{
 			if (!capture.grab() || !capture.retrieve(frame))
@@ -163,45 +245,45 @@ int main(int _nargs, char** _vargs)
 
 				k = 0;
 				double lastFrameMin = matches.back()->getMinDistance();
+				minDistances.push_back(lastFrameMin);
 				minDistance = minDistance > lastFrameMin ? lastFrameMin : minDistance;
 			}
 			k++;
 
 			if (t == 10000)
 			{
-				cout << "Processing frame " << j << "/" << totalFrames << "\n";
+				high_resolution_clock::time_point t2 = high_resolution_clock::now();
+				auto duration = chrono::duration_cast<chrono::microseconds>(t2 - t1).count();
+				cout << "Processing frame " << j << "/" << totalFrames << " - Elapsed time: " << duration / 1E6 << " seg\n";
 				t = 0;
 			}
 			t++;
+
+//			if (j >= 81000)
+//				break;
 		}
+
+		sort(minDistances.begin(), minDistances.end());
+		double medianDistance = Helper::getMedian(minDistances);
+		Scalar meanDistance, stdDev;
+		meanStdDev(minDistances, meanDistance, stdDev);
+
+		double thresholdDistance = fmax(minDistance * 2, fmin(medianDistance, meanDistance[0] - stdDev[0]));
 
 		cout << "Extracted " << matches.size() << " from target video.\n";
 
-		getQueryAppearanceTimes(minDistance, matches);
+		// Extract the appearances of each query video
+		double fps = capture.get(CV_CAP_PROP_FPS);
+		map<string, vector<Appearance>> appearances = extractQueryAppearanceTimes(matches, fps, thresholdDistance);
 
-		/////////////////////////////
-
-//		map<string, Match> closestFrame;
-//		for (String query : queryLocations)
-//			closestFrame[query] = Match(numeric_limits<double>::max(), Descriptor(), Descriptor());
-//
-//		// Extract the closer frame to each query
-//		for (MatchArray array : matches)
-//		{
-//			for (String query : queryLocations)
-//			{
-//				Match m = array.getQueryMinDistance(query);
-//				if (closestFrame[query].distance > m.distance)
-//					closestFrame[query] = m;
-//			}
-//		}
-//
-//		double fps = capture.get(CV_CAP_PROP_FPS);
-//		for (pair<string, Match> p : closestFrame)
-//		{
-//			double matchTime = p.second.target.getFrame() / fps;
-//			cout << "Closer time to video " << p.first << " is " << matchTime << "\n";
-//		}
+		// Print appearance times
+		for (pair<string, vector<Appearance>> entry : appearances)
+		{
+			for (Appearance ap : entry.second)
+			{
+				printf("Query: %-50s --start-time=%.2f --run-time=%.2f\n", entry.first.c_str(), ap.startTime, ap.length);
+			}
+		}
 	}
 
 	return EXIT_SUCCESS;

@@ -20,6 +20,24 @@ struct Match;
 typedef shared_ptr<MatchArray> MatchArrayPtr;
 typedef shared_ptr<Match> MatchPtr;
 
+struct Appearance
+{
+	double startTime;
+	double length;
+
+	Appearance()
+	{
+		startTime = -1;
+		length = -1;
+	}
+
+	Appearance(const double _starTime, const double _length)
+	{
+		startTime = _starTime;
+		length = _length;
+	}
+};
+
 // Structure holding pairs of matching descriptors
 struct Match
 {
@@ -55,9 +73,25 @@ public:
 	double getMinDistance();
 	// Returns the maximum distance in the current array
 	double getMaxDistance();
+	// Returns the query name of the min distance element
+	string getMinDistanceQuery();
+	// Returns the match holding the min distance for the current frame
+	Match getMinDistanceMatch() const;
+
+	inline int getFrame() const
+	{
+		return targetVideoFrame;
+	}
 
 private:
 	int targetVideoFrame;
 	map<string, vector<Match>> matches;
+	string minDistanceQuery;
+	string maxDistanceQuery;
+	Match minDistanceMatch;
+	Match maxDistanceMatch;
+
+	void findMinDistanceMatch();
+	void findMaxDistanceMatch();
 };
 
