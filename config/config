@@ -1,0 +1,6 @@
+descriptor OMD
+metric MANHATTAN
+minLength 4
+querySkippedFrames 1
+targetFrameRate 3
+maxJump	7

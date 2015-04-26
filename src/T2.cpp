@@ -14,6 +14,7 @@
 #include "Helper.h"
 #include "MatchArray.h"
 #include "Metric.h"
+#include "Config.h"
 
 using namespace std;
 using namespace chrono;
@@ -84,7 +85,7 @@ void getQueryDescriptors(map<string, vector<DescriptorPtr>> &_queryDescriptors, 
 	}
 }
 
-map<string, vector<Appearance>> extractQueryAppearanceTimes(vector<MatchArrayPtr> &_matchesPerFrame, const double _targetFrameRate, const double _discardThreshold)
+map<string, vector<Appearance>> extractQueryAppearanceTimes(vector<MatchArrayPtr> &_matchesPerFrame, const double _targetFrameRate, const double _discardThreshold, const double _minLength)
 {
 	vector<MatchArrayPtr> refinedArray1;
 	vector<double> refinedDistances1;
@@ -125,24 +126,28 @@ map<string, vector<Appearance>> extractQueryAppearanceTimes(vector<MatchArrayPtr
 		printf("Refined match 1 => %-50s\td: %-6.3f\tframe: %-6d\ttime: %-6.2f\n", array->getMinDistanceQuery().c_str(), array->getMinDistance(), array->getFrame(), array->getFrame() / _targetFrameRate);
 
 	// Extract appearances
+	double maxJump = Config::getMaxJump();
 	map<string, vector<Appearance>> appearances;
 	string lastQuery = refinedMatches[0]->getMinDistanceQuery();
 	double startTime = refinedMatches[0]->getFrame() / _targetFrameRate;
 	double lastTime = startTime;
 	for (MatchArrayPtr array : refinedMatches)
 	{
+		double thisTime = array->getFrame() / _targetFrameRate;
 		string query = array->getMinDistanceQuery();
-		if (lastQuery.compare(query) != 0)
+
+		// Finish a sequence if the query has changed or if a jump in time has been done
+		if (lastQuery.compare(query) != 0 || thisTime - lastTime > maxJump)
 		{
 			if (appearances.find(lastQuery) == appearances.end())
 				appearances[lastQuery] = vector<Appearance>();
 
 			appearances[lastQuery].push_back(Appearance(startTime, lastTime - startTime));
-			startTime = array->getFrame() / _targetFrameRate;
+			startTime = thisTime;
 		}
 
 		lastQuery = query;
-		lastTime = array->getFrame() / _targetFrameRate;
+		lastTime = thisTime;
 	}
 
 	// Add last appearance
@@ -151,14 +156,13 @@ map<string, vector<Appearance>> extractQueryAppearanceTimes(vector<MatchArrayPtr
 	appearances[lastQuery].push_back(Appearance(startTime, lastTime - startTime));
 
 	// Remove short appearances
-	double minimumLength = 15;
 	for (map<string, vector<Appearance>>::iterator it = appearances.begin(); it != appearances.end(); it++)
 	{
 		size_t insertPoint = 0;
 		size_t seekPoint = 0;
 		for (seekPoint = 0; seekPoint < it->second.size(); seekPoint++)
 		{
-			if (it->second[seekPoint].length >= minimumLength)
+			if (it->second[seekPoint].length >= _minLength)
 			{
 				if (seekPoint != insertPoint)
 					it->second[insertPoint] = it->second[seekPoint];
@@ -180,8 +184,10 @@ int main(int _nargs, char** _vargs)
 		return EXIT_FAILURE;
 	}
 
-	DescType descriptorType = OMD;
-	MetricType metricType = EUCLIDEAN;
+	Config::load("./config/config");
+
+	DescType descriptorType = Config::getDescriptorType();
+	MetricType metricType = Config::getMetricType();
 
 	// Get input file name
 	string inputFile = _vargs[1];
@@ -189,7 +195,7 @@ int main(int _nargs, char** _vargs)
 	// Get descriptors for each query video
 	vector<string> queryLocations = Helper::getQueryLocations(inputFile);
 	map<string, vector<DescriptorPtr>> queryDescriptors;
-	getQueryDescriptors(queryDescriptors, queryLocations, descriptorType, 1);
+	getQueryDescriptors(queryDescriptors, queryLocations, descriptorType, Config::getQuerySkippedFrames());
 
 	string targetLocation = Helper::getTargetLocation(inputFile);
 	cout << "Target video: " << targetLocation << "\n";
@@ -203,7 +209,7 @@ int main(int _nargs, char** _vargs)
 	}
 	else
 	{
-		int skipFrames = Helper::getSkipFrames(3, capture);
+		int skipFrames = Helper::getSkipFrames(Config::getTargetFrameRate(), capture);
 		double totalFrames = capture.get(CV_CAP_PROP_FRAME_COUNT);
 		vector<MatchArrayPtr> matches;
 		matches.reserve((int) (totalFrames / skipFrames) + 1);
@@ -258,9 +264,6 @@ int main(int _nargs, char** _vargs)
 				t = 0;
 			}
 			t++;
-
-//			if (j >= 81000)
-//				break;
 		}
 
 		sort(minDistances.begin(), minDistances.end());
@@ -274,7 +277,7 @@ int main(int _nargs, char** _vargs)
 
 		// Extract the appearances of each query video
 		double fps = capture.get(CV_CAP_PROP_FPS);
-		map<string, vector<Appearance>> appearances = extractQueryAppearanceTimes(matches, fps, thresholdDistance);
+		map<string, vector<Appearance>> appearances = extractQueryAppearanceTimes(matches, fps, thresholdDistance, Config::getMinVideoLength());
 
 		// Print appearance times
 		for (pair<string, vector<Appearance>> entry : appearances)

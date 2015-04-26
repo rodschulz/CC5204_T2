@@ -1,5 +1,5 @@
 IS_WINDOWS	:= n
-IS_DEBUG	:= y
+IS_DEBUG	:= n
 USE_PKGCONFIG	:= y
 
 CXXFLAGS	:= -Wall -Wextra -pedantic -Wno-unused-function -std=gnu++11
@@ -44,7 +44,7 @@ endif
 SOURCE_DIR	:= src
 BUILD_DIR	:= build
 TARGET		:= $(BUILD_DIR)/T2$(SUFFIX_EXE)
-OBJS		:= $(BUILD_DIR)/T2.o $(BUILD_DIR)/Descriptor.o $(BUILD_DIR)/MatchArray.o $(BUILD_DIR)/Metric.o $(BUILD_DIR)/Helper.o $(BUILD_DIR)/Result.o
+OBJS		:= $(BUILD_DIR)/T2.o $(BUILD_DIR)/Descriptor.o $(BUILD_DIR)/MatchArray.o $(BUILD_DIR)/Metric.o $(BUILD_DIR)/Helper.o $(BUILD_DIR)/Config.o
 
 .PHONY: all clean
 
