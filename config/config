@@ -1,6 +1,7 @@
 descriptor OMD
-metric MANHATTAN
+metric EUCLIDEAN
 minLength 4
 querySkippedFrames 1
 targetFrameRate 3
-maxJump	7
+maxJump	10
+param 10

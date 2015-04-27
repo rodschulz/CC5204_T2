@@ -84,3 +84,9 @@ void MatchArray::findMaxDistanceMatch()
 		}
 	}
 }
+
+void MatchArray::swapMinDistanceQuery(const string &_query)
+{
+	minDistanceMatch = matches[_query][0];
+	minDistanceQuery = _query;
+}

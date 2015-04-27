@@ -30,6 +30,8 @@ public:
 	static double getMedian(const vector<double> &_data);
 	/** Prints the given array to a text file */
 	static void printToFile(const string &_outputFile, const vector<double> &_data);
+	/** */
+	static void clearOutliers(vector<MatchArrayPtr> &_matches);
 
 private:
 	Helper();

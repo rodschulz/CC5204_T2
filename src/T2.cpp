@@ -121,6 +121,9 @@ map<string, vector<Appearance>> extractQueryAppearanceTimes(vector<MatchArrayPtr
 		}
 	}
 
+	cout << "Clearing outliers\n";
+	Helper::clearOutliers(refinedMatches);
+
 	cout << "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n";
 	cout << "Refined matches size: " << refinedArray1.size() << "\n";
 	for (MatchArrayPtr array : refinedMatches)
@@ -288,14 +291,14 @@ int main(int _nargs, char** _vargs)
 		resFileName += "-PARAM_";
 		resFileName += to_string(param);
 		resFileName += "-METRIC_";
-		resFileName += Metric::ToString(metricType);
-		resFile = fopen (resFileName.c_str(), "w");
+//		resFileName += Metric::ToString(metricType);
+		resFile = fopen(resFileName.c_str(), "w");
 		for (pair<string, vector<Appearance>> entry : appearances)
 		{
 			for (Appearance ap : entry.second)
 			{
 				printf("Query: %-50s --start-time=%.2f --run-time=%.2f\n", entry.first.c_str(), ap.startTime, ap.length);
-				fprintf(resFile, "Query: %-50s --start-time=%.2f --run-time=%.2f\n", entry.first.c_str(), ap.startTime, ap.length);
+//				fprintf(resFile, "Query: %-50s --start-time=%.2f --run-time=%.2f\n", entry.first.c_str(), ap.startTime, ap.length);
 			}
 		}
 	}

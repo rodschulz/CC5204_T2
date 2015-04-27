@@ -77,6 +77,8 @@ public:
 	string getMinDistanceQuery();
 	// Returns the match holding the min distance for the current frame
 	Match getMinDistanceMatch() const;
+	//
+	void swapMinDistanceQuery(const string &_query);
 
 	inline int getFrame() const
 	{

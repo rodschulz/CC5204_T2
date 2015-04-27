@@ -135,3 +135,25 @@ void Helper::printToFile(const string &_outputFile, const vector<double> &_data)
 
 	out.close();
 }
+
+void Helper::clearOutliers(vector<MatchArrayPtr> &_matches)
+{
+	string prevQuery = _matches[0]->getMinDistanceQuery();
+	string thisQuery = _matches[1]->getMinDistanceQuery();
+	string nextQuery;
+	for (size_t i = 2; i < _matches.size() - 1; i++)
+	{
+		nextQuery = _matches[i]->getMinDistanceQuery();
+		if (prevQuery.compare(nextQuery) == 0 && thisQuery.compare(prevQuery) != 0)
+		{
+			double potencialMinDist = _matches[i - 1]->getQueryMinDistance(prevQuery).distance;
+			double currentMinDist = _matches[i - 1]->getMinDistance();
+
+			if (potencialMinDist <= currentMinDist * 2)
+				_matches[i - 1]->swapMinDistanceQuery(prevQuery);
+		}
+
+		prevQuery = thisQuery;
+		thisQuery = nextQuery;
+	}
+}
