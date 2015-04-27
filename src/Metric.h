@@ -30,6 +30,16 @@ public:
 	static void setMetricType(const MetricType &_type);
 	// Returns the metric associated to the currently set type
 	static functionPointer getMetric();
+	inline static const char* ToString(MetricType v)
+	{
+		switch (v)
+		{
+			case MANHATTAN:   return "MANHATTAN";
+			case EUCLIDEAN:   return "EUCLIDEAN";
+			case MAX:   return "MAX";
+			default:      return "[Unknown]";
+		}
+	}
 
 private:
 	Metric();

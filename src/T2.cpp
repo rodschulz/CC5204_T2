@@ -290,6 +290,7 @@ int main(int _nargs, char** _vargs)
 		resFileName += "-METRIC_";
 		resFileName += Metric::ToString(metricType);
 		resFile = fopen (resFileName.c_str(), "w");
+
 		for (pair<string, vector<Appearance>> entry : appearances)
 		{
 			for (Appearance ap : entry.second)
