@@ -13,6 +13,7 @@
 Config::Config()
 {
 	descriptorType = HIST;
+	param = 64; // Param: # of bins if HIST, # of areas (param x param) if OMD
 	metricType = EUCLIDEAN;
 	minVideoLength = 3;
 	maxJump = 5;
@@ -72,6 +73,8 @@ void Config::parse(const string _key, const string _value)
 		getInstance()->targetFrameRate = atoi(_value.c_str());
 	else if (_key.compare("maxJump") == 0)
 		getInstance()->maxJump = atof(_value.c_str());
+	else if (_key.compare("param") == 0)
+		getInstance()->param = atoi(_value.c_str());
 }
 
 DescType Config::getDescriptorType()
@@ -102,4 +105,9 @@ int Config::getTargetFrameRate()
 int Config::getMaxJump()
 {
 	return getInstance()->maxJump;
+}
+
+int Config::getDescriptorParam()
+{
+	return getInstance()->param;
 }

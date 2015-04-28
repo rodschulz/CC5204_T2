@@ -3,6 +3,7 @@
  * 2015
  */
 #include <stdlib.h>
+#include <stdio.h>
 #include <vector>
 #include <iostream>
 #include <chrono>
@@ -20,7 +21,7 @@ using namespace std;
 using namespace chrono;
 using namespace cv;
 
-bool getVideoDescriptor(const string &_videoLocation, vector<DescriptorPtr> &_outputDescriptor, const DescType &_type, const int &_skipFrames)
+bool getVideoDescriptor(const string &_videoLocation, vector<DescriptorPtr> &_outputDescriptor, const DescType &_type, const int &_skipFrames, const int param)
 {
 	bool statusOk = true;
 
@@ -59,7 +60,7 @@ bool getVideoDescriptor(const string &_videoLocation, vector<DescriptorPtr> &_ou
 				if (k == _skipFrames)
 				{
 					cvtColor(frame, grayFrame, COLOR_BGR2GRAY);
-					_outputDescriptor.push_back(DescriptorPtr(new Descriptor(grayFrame, j, _type)));
+					_outputDescriptor.push_back(DescriptorPtr(new Descriptor(grayFrame, j, _type, param)));
 
 					k = -1;
 				}
@@ -71,14 +72,14 @@ bool getVideoDescriptor(const string &_videoLocation, vector<DescriptorPtr> &_ou
 	return statusOk;
 }
 
-void getQueryDescriptors(map<string, vector<DescriptorPtr>> &_queryDescriptors, const vector<string> &_queryLocations, const DescType &_descriptorType, const int _skipFrames)
+void getQueryDescriptors(map<string, vector<DescriptorPtr>> &_queryDescriptors, const vector<string> &_queryLocations, const DescType &_descriptorType, const int _skipFrames, const int param)
 {
 	for (String query : _queryLocations)
 	{
 		cout << "Processing query: " << query << "\n";
 
 		_queryDescriptors[query] = vector<DescriptorPtr>();
-		if (!getVideoDescriptor(query, _queryDescriptors[query], _descriptorType, _skipFrames))
+		if (!getVideoDescriptor(query, _queryDescriptors[query], _descriptorType, _skipFrames, param))
 			_queryDescriptors.erase(query);
 
 		cout << "Query video descriptor length: " << _queryDescriptors[query].size() << "\n";
@@ -188,6 +189,7 @@ int main(int _nargs, char** _vargs)
 
 	DescType descriptorType = Config::getDescriptorType();
 	MetricType metricType = Config::getMetricType();
+	int param = Config::getDescriptorParam();
 
 	// Get input file name
 	string inputFile = _vargs[1];
@@ -195,7 +197,7 @@ int main(int _nargs, char** _vargs)
 	// Get descriptors for each query video
 	vector<string> queryLocations = Helper::getQueryLocations(inputFile);
 	map<string, vector<DescriptorPtr>> queryDescriptors;
-	getQueryDescriptors(queryDescriptors, queryLocations, descriptorType, Config::getQuerySkippedFrames());
+	getQueryDescriptors(queryDescriptors, queryLocations, descriptorType, Config::getQuerySkippedFrames(), param);
 
 	string targetLocation = Helper::getTargetLocation(inputFile);
 	cout << "Target video: " << targetLocation << "\n";
@@ -236,7 +238,7 @@ int main(int _nargs, char** _vargs)
 			if (k == skipFrames)
 			{
 				cvtColor(frame, grayFrame, COLOR_BGR2GRAY);
-				DescriptorPtr currentFrameDescriptor(new Descriptor(grayFrame, j, descriptorType));
+				DescriptorPtr currentFrameDescriptor(new Descriptor(grayFrame, j, descriptorType, param));
 
 				// Generate object to store matches for this frame
 				matches.push_back(MatchArrayPtr(new MatchArray(j)));
@@ -280,11 +282,18 @@ int main(int _nargs, char** _vargs)
 		map<string, vector<Appearance>> appearances = extractQueryAppearanceTimes(matches, fps, thresholdDistance, Config::getMinVideoLength());
 
 		// Print appearance times
+		FILE *resFile;
+		string resFileName = "../results/DESCTYPE_";
+		resFileName += Descriptor::ToString(descriptorType);
+		resFileName += "-METRIC_";
+		resFileName += Metric::ToString(metricType);
+		resFile = fopen (resFileName.c_str(), "w");
 		for (pair<string, vector<Appearance>> entry : appearances)
 		{
 			for (Appearance ap : entry.second)
 			{
 				printf("Query: %-50s --start-time=%.2f --run-time=%.2f\n", entry.first.c_str(), ap.startTime, ap.length);
+				fprintf(resFile, "Query: %-50s --start-time=%.2f --run-time=%.2f\n", entry.first.c_str(), ap.startTime, ap.length);
 			}
 		}
 	}

@@ -30,7 +30,7 @@ public:
 	// Empty constructor
 	Descriptor();
 	// Constructor
-	Descriptor(const Mat &_frame, const int _frameNumber, const DescType &_type);
+	Descriptor(const Mat &_frame, const int _frameNumber, const DescType &_type, const int param);
 	// Copy constructor
 	Descriptor(const Descriptor &_other);
 	// Assignment operator
@@ -51,13 +51,22 @@ public:
 	{
 		return originFrameNumber;
 	}
+	inline static const char* ToString(DescType v)
+	{
+		switch (v)
+		{
+			case HIST:	return "HIST";
+			case OMD:   return "OMD";
+			default:	return "[Unknown]";
+		}
+	}
 
 private:
 	int originFrameNumber;
 	vector<double> data;
 
-	void Histogram(const Mat &_frame);
-	void Omd(const Mat &_frame);
+	void Histogram(const Mat &_frame, int histSize);
+	void Omd(const Mat &_frame, int N);
 	// Normaliza histograma segun el total de pixeles del area
 	void normalizeHist(const Mat &_hist, const int _bins, const double _total, vector<double> &_normalizedHist);
 };

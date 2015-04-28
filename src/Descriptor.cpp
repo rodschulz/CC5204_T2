@@ -13,16 +13,17 @@ Descriptor::Descriptor()
 	data.clear();
 }
 
-Descriptor::Descriptor(const Mat &_frame, const int _frameNumber, const DescType &_type)
+//Param: # of bins if HIST, # of areas (param x param) if OMD
+Descriptor::Descriptor(const Mat &_frame, const int _frameNumber, const DescType &_type, const int param)
 {
 	switch (_type)
 	{
 		case HIST:
-			Histogram(_frame);
+			Histogram(_frame, param);
 		break;
 
 		case OMD:
-			Omd(_frame);
+			Omd(_frame, param);
 		break;
 	}
 
@@ -50,7 +51,7 @@ Descriptor &Descriptor::operator=(const Descriptor &_other)
 	return *this;
 }
 
-void Descriptor::Histogram(const Mat &_grayFrame)
+void Descriptor::Histogram(const Mat &_grayFrame, int histSize)
 {
 	cv::Size s = _grayFrame.Mat::size();
 	int frameWidth = s.width;
@@ -69,7 +70,7 @@ void Descriptor::Histogram(const Mat &_grayFrame)
 	area4 = _grayFrame(cv::Rect(areaWidth, areaHeight, areaWidth, areaHeight));
 
 	//Histogram
-	int histSize = 128;
+	//int histSize = 128;
 	//the upper boundary is exclusive
 	float range[] =
 	{ 0, 256 };
@@ -99,20 +100,18 @@ void Descriptor::normalizeHist(const Mat &_hist, const int _bins, const double _
 		_normalizedHist.push_back(_hist.at<float>(i, 0) / _total);
 }
 
-void Descriptor::Omd(const Mat &_grayFrame)
+void Descriptor::Omd(const Mat &_grayFrame, int N)
 {
 	cv::Size s = _grayFrame.Mat::size();
 	int frameWidth = s.width;
 	int frameHeight = s.height;
 
 	/**
-	 * |  1 |  2 |  3 | ... | 9  | 10 |
-	 * | 11 | 12 | 13 | ... ...  | 20 |
+	 * |  1  |  2  |  3  | ... ...  |   N  |
+	 * | N+1 | N+2 | N+3 | ... ...  |  2N  |
 	 * ...
-	 * | 91 | 92 | 93 | ... ...  | 100|
+	 * | ... | ... | ... | ... ...  | N x N|
 	 */
-	//TODO dejar numero de divisiones como parametro
-	int N = 10;
 	int areaWidth = frameWidth / N;
 	int areaHeight = frameHeight / N;
 

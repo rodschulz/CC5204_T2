@@ -30,6 +30,7 @@ public:
 	static int getQuerySkippedFrames();
 	static int getTargetFrameRate();
 	static int getMaxJump();
+	static int getDescriptorParam();
 
 private:
 	Config();
@@ -42,5 +43,6 @@ private:
 	double maxJump;
 	int querySkippedFrames;
 	int targetFrameRate;
+	int param;
 };
 
