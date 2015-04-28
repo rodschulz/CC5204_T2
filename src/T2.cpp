@@ -285,6 +285,8 @@ int main(int _nargs, char** _vargs)
 		FILE *resFile;
 		string resFileName = "../results/DESCTYPE_";
 		resFileName += Descriptor::ToString(descriptorType);
+		resFileName += "-PARAM_";
+		resFileName += to_string(param);
 		resFileName += "-METRIC_";
 		resFileName += Metric::ToString(metricType);
 		resFile = fopen (resFileName.c_str(), "w");
