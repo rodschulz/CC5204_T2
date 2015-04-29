@@ -188,7 +188,7 @@ int main(int _nargs, char** _vargs)
 		return EXIT_FAILURE;
 	}
 
-	Config::load("./config/config");
+	Config::load("../config/config");
 
 	DescType descriptorType = Config::getDescriptorType();
 	MetricType metricType = Config::getMetricType();
@@ -284,7 +284,11 @@ int main(int _nargs, char** _vargs)
 		double fps = capture.get(CV_CAP_PROP_FPS);
 		map<string, vector<Appearance>> appearances = extractQueryAppearanceTimes(matches, fps, thresholdDistance, Config::getMinVideoLength());
 
-		// Print appearance times
+		// Total ellapsed time
+		high_resolution_clock::time_point t2 = high_resolution_clock::now();
+		auto duration = chrono::duration_cast<chrono::microseconds>(t2 - t1).count();
+
+		// Print appearances
 		FILE *resFile;
 		string resFileName = "../results/DESCTYPE_";
 		resFileName += Descriptor::ToString(descriptorType);
@@ -293,6 +297,9 @@ int main(int _nargs, char** _vargs)
 		resFileName += "-METRIC_";
 		resFileName += Metric::ToString(metricType);
 		resFile = fopen(resFileName.c_str(), "w");
+
+		fprintf(resFile, "#ELLAPSED TIME: %.2f\n", duration / 1E6);
+
 		for (pair<string, vector<Appearance>> entry : appearances)
 		{
 			for (Appearance ap : entry.second)
